@@ -1,0 +1,79 @@
+DELEGATUM — DESKTOP-APPLIKATIOUN (Windows)
+============================================
+
+🌍 Aner Sproochen: Français → LISEZ-MOI.txt · English → README.txt ·
+   Deutsch → LIESMICH.txt
+
+Gestioun vun Ärer Personalvertriedung (Lëtzebuerg) op ÄREM eegenen Computer.
+Kee Server, kee Konto online, keng Verbindung néideg: Är Daten verloossen
+den Apparat net.
+
+INSTALLATIOUN (2 Minutten, ouni Installateur)
+---------------------------------------------
+1. Entpakt de Dossier « Delegatum-Windows », wou Dir wëllt (zum Beispill:
+   Dokumenter\Delegatum). Vermeit « Program Files », Windows blockéiert do
+   d'Schreiweprozedur vun den Daten.
+2. Duebelklick op « Delegatum.exe ».
+
+   Éischten Start: Windows weist eventuell « Windows huet Ären PC
+   proteg\u00e9iert » (SmartScreen — normal fir eng net-signéiert
+   Applikatioun). Klickt op « Weider Informatiounen » an dann « Wéi och ëmmer
+   ausféieren ».
+
+   Windows Defender mellt eventuell en Trojaner: dat ass e bekannten
+   FALSCHE POSITIVE bei net-signéierten Applikatiounen. Klickt op d'Meldung
+   → « Aktiounen » → « Op dem Apparat zouloossen ».
+
+3. D'Delegatum-Fënster geet op mam Écran « Eng Personalvertriedung
+   grënnen » (nëmmen beim éischte Start).
+
+ÉISCHT SCHRËTT
+--------------
+Beim éischte Start grënnt Dir Är Vertriedung:
+   - Numm vun der Organisatioun, Zuel vun de Beschäftegten;
+   - Koordinaten vum/vun der President(in): dëse éischte Konto ass den
+     Administrateur.
+
+Duerno: « 🔑 Ech hunn schonn en Accès » fir Iech unzemellen. Aner Memberen
+kommen iwwer en Invitatiounscode bäi (« ✉️ En Accès uleeën »).
+
+ÄR DATEN
+--------
+Alles läit am Dossier « data » niewent Delegatum.exe:
+   - delegatum.db   : d'Datebank (Memberen, Versammlungen, Protokoller,
+                      Wahlen, Stonnen …);
+   - .secret_key    : lokalen Ënnerschrëftsschlëssel — net deelen;
+   - emails\        : virbereet Benoriichtegungen (.eml-Dateien).
+
+Sécherung = kopéiert dësen Dossier « data » heiansdo op en USB-Stick oder
+eng extern Plack. Restauratioun = den Dossier zréck op seng Plaz kopéieren.
+
+DATENPROTECTIOUN
+----------------
+Näischt gëtt an d'Internet geschéckt. D'Protokoller ginn an der Applikatioun
+verschlësselt (AES-256-GCM) mat engem Tresor-Passwuert: souguer d'Dateien am
+Dossier « data » enthalen se net am Kloertext. Bewaart den
+Wiederherstelungsschlëssel vum Tresor (« Astellungen ») sécher.
+
+ZOUMAACHEN
+----------
+Maacht d'Fënster zou (d'Kräiz). D'Applikatioun hält op — keen
+Hannergrondservice bleift aktiv.
+
+PROBLEMER
+---------
+- « Windows huet Ären PC protegéiert »: normal (net-signéiert Applikatioun),
+  kuckt Punkt 2.
+- D'Fënster geet net op: préift, ob en Antivirus Delegatum.exe blockéiert,
+  a start nei.
+- Vun Null ufänken: Applikatioun zoumaachen an den Dossier « data » läschen
+  (⚠️ alles gëtt geläscht — mécht virdrun eng Sécherung, wann néideg).
+- Computer wiesselen: kopéiert den Dossier « data » niewent déi nei
+  Delegatum.exe.
+
+⚠️ Experimentell Applikatioun — nëmmen fir Demonstratiounszwecker. Si ass
+keeng juristesch Berodung a garantéiert net d'Konformitéit mat der
+lëtzebuerger Gesetzgebung. Fir Froen zum Aarbechtsrecht, konsultéiert eng
+qualifizéiert Fachpersoun oder d'Chambre des Salariés (CSL).
+
+MIT-Lizenz — Quellcode: github.com/LostInTheBugs/Delegatum

@@ -1,0 +1,78 @@
+DELEGATUM — DESKTOP-ANWENDUNG (Windows)
+========================================
+
+🌍 Andere Sprachen: Français → LISEZ-MOI.txt · English → README.txt ·
+   Lëtzebuergesch → LIES-MICH.txt
+
+Verwaltung Ihrer Personaldelegation (Luxemburg) auf IHREM eigenen Rechner.
+Kein Server, kein Online-Konto, keine Verbindung erforderlich: Ihre Daten
+verlassen den Rechner nicht.
+
+INSTALLATION (2 Minuten, ohne Installer)
+----------------------------------------
+1. Entpacken Sie den Ordner « Delegatum-Windows », wohin Sie möchten
+   (zum Beispiel: Dokumente\Delegatum). Vermeiden Sie « Program Files »,
+   Windows blockiert dort das Schreiben der Daten.
+2. Doppelklick auf « Delegatum.exe ».
+
+   Erster Start: Windows zeigt eventuell « Windows hat Ihren PC geschützt »
+   (SmartScreen — normal für eine nicht signierte Anwendung). Klicken Sie auf
+   « Weitere Informationen » und dann « Trotzdem ausführen ».
+
+   Windows Defender meldet eventuell einen Trojaner: das ist ein bekannter
+   FALSCH-POSITIVER Befund bei nicht signierten Anwendungen. Klicken Sie auf
+   die Meldung → « Aktionen » → « Auf Gerät zulassen ».
+
+3. Das Delegatum-Fenster öffnet sich mit dem Bildschirm « Personaldelegation
+   erstellen » (nur beim ersten Start).
+
+ERSTE SCHRITTE
+--------------
+Beim ersten Start legen Sie Ihre Delegation an:
+   - Name der Organisation, Beschäftigtenzahl;
+   - Angaben des/der Vorsitzenden: dieses erste Konto ist der Administrator.
+
+Danach: « 🔑 Ich habe bereits Zugang » zum Anmelden. Weitere Mitglieder
+treten über einen Einladungscode bei (« ✉️ Zugang erstellen »).
+
+IHRE DATEN
+----------
+Alles liegt im Ordner « data » neben Delegatum.exe:
+   - delegatum.db   : die Datenbank (Mitglieder, Sitzungen, Protokolle,
+                      Wahlen, Stunden …);
+   - .secret_key    : lokaler Signaturschlüssel — nicht weitergeben;
+   - emails\        : vorbereitete Benachrichtigungen (.eml-Dateien).
+
+Sicherung = kopieren Sie diesen Ordner « data » gelegentlich auf einen
+USB-Stick oder eine externe Festplatte. Wiederherstellen = Ordner zurück an
+seinen Platz kopieren.
+
+DATENSCHUTZ
+-----------
+Nichts wird ins Internet gesendet. Die Protokolle werden in der Anwendung
+verschlüsselt (AES-256-GCM) mit einem Tresor-Passwort: selbst die Dateien im
+Ordner « data » enthalten sie nicht im Klartext. Bewahren Sie den
+Wiederherstellungsschlüssel des Tresors (« Einstellungen ») sicher auf.
+
+SCHLIESSEN
+----------
+Schliessen Sie das Fenster (das Kreuz). Die Anwendung beendet sich — kein
+Hintergrunddienst bleibt aktiv.
+
+PROBLEMBEHANDLUNG
+-----------------
+- « Windows hat Ihren PC geschützt »: normal (nicht signierte Anwendung),
+  siehe Schritt 2.
+- Das Fenster öffnet sich nicht: prüfen Sie, ob ein Antivirus Delegatum.exe
+  blockiert, und starten Sie neu.
+- Von vorne beginnen: Anwendung schliessen und den Ordner « data » löschen
+  (⚠️ alles wird gelöscht — vorher ggf. eine Sicherung anlegen).
+- Computerwechsel: kopieren Sie den Ordner « data » neben die neue
+  Delegatum.exe.
+
+⚠️ Experimentelle Anwendung — nur zu Demonstrationszwecken. Sie stellt keine
+Rechtsberatung dar und es wird keine Konformität mit der luxemburgischen
+Gesetzgebung garantiert. Wenden Sie sich bei Fragen zum Arbeitsrecht an
+eine qualifizierte Fachperson oder an die Chambre des Salariés (CSL).
+
+MIT-Lizenz — Quellcode: github.com/LostInTheBugs/Delegatum

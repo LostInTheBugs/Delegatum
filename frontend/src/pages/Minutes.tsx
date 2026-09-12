@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth'
 import { useVault } from '../hooks/useVault'
 import { useT } from '../i18n/I18nContext'
 import { exportDirectionPDF, type DirectionPreview } from '../lib/pdfExport'
+import { saveBlob } from '../lib/download'
 import { encryptSection, sectionDigest, getSessionDEK } from '../lib/vault'
 import { generateReadCode, wrapDEKForSharing } from '../lib/shareLink'
 import {
@@ -339,14 +340,7 @@ export default function MinutesPage() {
 
       // 4. Download the file
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `PV-direction-${minute.id}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      await saveBlob(`PV-direction-${minute.id}.pdf`, blob)
 
       // 5. Refresh to get updated status + publication history
       const mr = await fetch(`/api/minutes/${minute.id}`, { headers: h })

@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.09.002] — 2026-09-12
+
+### 🖥️ Delegatum Desktop — standalone Windows application
+
+- **No server, no installer**: a self-contained `Delegatum.exe` (PyInstaller + native WebView window, WebView2) runs the whole application locally — database, API and UI in one window. Data lives in a `data/` folder next to the executable (backup = copy that folder); nothing is sent to the Internet.
+- **Bundled frontend**: in desktop mode the backend serves the compiled SPA itself (`SD_STATIC_DIR`, with client-route fallback); the static hook is inert on web deployments — nginx behaviour unchanged.
+- **Native file saving**: the embedded WebView silently blocks `<a download>` downloads, so every export (minutes / statistics / election poster PDFs, hours CSV, notifications ZIP and `.eml`) now opens a native “Save as” dialog (new `download.ts` frontend helper routed to `DesktopApi.save_file`).
+- **First launch** opens the “Create a staff delegation” screen; a per-installation JWT secret key is generated once and kept in `data/.secret_key`.
+- **Windows build & smoke test**: `.github/workflows/desktop-build.yml` (windows-latest) builds the executable, verifies the API + UI + SPA fallback from the bundle and publishes the `Delegatum-Windows.zip` artifact (executable + user guide in FR/EN/DE/LB). The zip is attached to the GitHub release.
+
 ## [2026.09.001] — 2026-09-12 (test pre-release)
 
 ### 🏛️ Rebranding — StaffDPapp becomes **Delegatum**

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import NavBar from '../components/NavBar'
+import { saveBlob } from '../lib/download'
 
 interface EmailConfigData {
   enabled: boolean
@@ -147,12 +148,7 @@ export default function Notifications() {
     const r = await fetch(`/api/emails/${id}/download.eml`, { headers: { Authorization: `Bearer ${token}` } })
     if (!r.ok) return
     const blob = await r.blob()
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `notification-${id}.eml`
-    a.click()
-    URL.revokeObjectURL(url)
+    await saveBlob(`notification-${id}.eml`, blob)
   }
 
   async function exportExternal() {
@@ -164,12 +160,7 @@ export default function Notifications() {
       })
       if (!r.ok) throw new Error((await r.json()).detail || 'Erreur')
       const blob = await r.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = 'notifications-export.zip'
-      a.click()
-      URL.revokeObjectURL(url)
+      await saveBlob('notifications-export.zip', blob)
       setMsg('Export généré — exécutez email_sender.py sur la machine avec accès SMTP')
       load()
     } catch (ex: any) {

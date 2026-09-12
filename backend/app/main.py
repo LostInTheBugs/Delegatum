@@ -12,7 +12,7 @@ assert_secret_key_is_set()
 app = FastAPI(
     title="Delegatum",
     description="Outil de gestion pour les délégations du personnel au Luxembourg",
-    version="2026.09.001",
+    version="2026.09.002",
 )
 
 # CORS — allow the frontend dev server (and any explicit override).
@@ -113,3 +113,14 @@ def on_startup():
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+# App de bureau (Delegatum Desktop) : le backend sert lui-même le front compilé
+# quand SD_STATIC_DIR pointe le dossier du build Vite — sans effet en
+# production web (nginx sert le front).
+# ⚠️ Garder ce montage EN DERNIER : le mount « / » capture tout chemin non
+# routé ; toute route définie APRÈS lui serait masquée (vécu : /api/health
+# renvoyait 404 JSON une fois le mount placé au-dessus).
+from app.core.spa import mount_spa
+
+mount_spa(app, os.environ.get("SD_STATIC_DIR", ""))

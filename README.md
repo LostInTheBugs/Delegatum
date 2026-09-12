@@ -6,7 +6,7 @@
 
 Management tool for **staff delegations** in Luxembourg, inspired by the Labour Code (Art. L.412-1, L.414-2, L.414-3, L.415-5, L.416-1). *Formerly known as StaffDPapp.*
 
-Current version: **2026.09.001** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
+Current version: **2026.09.002** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
 
 ## Features
 
@@ -38,6 +38,7 @@ Current version: **2026.09.001** — [See GitHub releases](https://github.com/Lo
 - 🏷️ **Company logo**: upload your organisation's logo (PNG/JPG/SVG, ≤ 512 KB) — displayed in the header of every page and on the login screen (type the organisation identifier shown in My organisation)
 - 📇 **Contact page**: the delegation's contact details (email, phone, office hours — editable by the administrator) plus the bureau, visible to all staff
 - 👤 **My profile**: photo, language, password change, MFA
+- 🖥️ **Windows desktop application**: a self-contained executable (no server, no installer) — unzip `Delegatum-Windows.zip`, double-click `Delegatum.exe`, data stays in a `data/` folder next to the executable; exports use a native “Save as” dialog; user guide in FR/EN/DE/LB (attached to each release)
 
 ## Demo
 

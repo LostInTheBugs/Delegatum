@@ -13,4 +13,5 @@ tsconfig.tsbuildinfo
 frontend/tsconfig.tsbuildinfo
 __pycache__/
 dist/
+build/
 *.tsbuildinfo

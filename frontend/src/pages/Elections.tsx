@@ -4,6 +4,7 @@ import { useT } from '../i18n/I18nContext'
 import NavBar from '../components/NavBar'
 import * as api from '../api/client'
 import { generateElectionAffichePdf } from '../lib/electionAffichePdf'
+import { saveBlob } from '../lib/download'
 
 const STATUS_LABEL: Record<string, string> = {
   announced: '📢',
@@ -120,11 +121,7 @@ export default function Elections() {
         notes: e.notes,
       })
       const blob = new Blob([pdf], { type: 'application/pdf' })
-      const a = document.createElement('a')
-      a.href = URL.createObjectURL(blob)
-      a.download = `affiche-elections-${e.id}.pdf`
-      a.click()
-      URL.revokeObjectURL(a.href)
+      await saveBlob(`affiche-elections-${e.id}.pdf`, blob)
     } catch (ex: any) { setErr(ex.message) }
   }
 

@@ -1,0 +1,106 @@
+name: desktop-build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'desktop/**'
+      - '.github/workflows/desktop-build.yml'
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend (embarqué dans l'exe)
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install backend dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt pyinstaller pywebview
+
+      - name: Build Delegatum.exe
+        run: pyinstaller --clean --noconfirm desktop/delegatum.spec
+
+      - name: Smoke test (server responds, UI served)
+        shell: pwsh
+        run: |
+          $env:DELEGATUM_NO_WINDOW = '1'
+          $p = Start-Process -FilePath dist\Delegatum\Delegatum.exe -PassThru
+          $line = ''
+          for ($i = 0; $i -lt 60; $i++) {
+            Start-Sleep -Seconds 2
+            if ($p.HasExited) { Write-Host "launcher exited early, code $($p.ExitCode)"; break }
+            if (Test-Path dist\Delegatum\url.txt) {
+              $line = (Get-Content dist\Delegatum\url.txt -First 1).Trim()
+              if ($line) { break }
+            }
+          }
+          if (Test-Path dist\Delegatum\error.log) { Write-Host '--- error.log ---'; Get-Content dist\Delegatum\error.log }
+          Write-Host "launcher url: $line"
+          if (-not $line -or -not $line.StartsWith('http://127.0.0.1:')) { throw "launcher did not start" }
+          $base = $line.TrimEnd('/')
+          $resp = Invoke-WebRequest -Uri "$base/api/health" -UseBasicParsing -TimeoutSec 15
+          Write-Host "health response: $($resp.Content)"
+          if ($resp.StatusCode -ne 200) { throw "API not responding" }
+          $cap = Invoke-WebRequest -Uri "$base/api/auth/captcha" -UseBasicParsing -TimeoutSec 15
+          if ($cap.StatusCode -ne 200 -or $cap.Content -notmatch 'challenge_id') { throw "captcha endpoint broken" }
+          $ui = (Invoke-WebRequest -Uri "$base/" -UseBasicParsing -TimeoutSec 15).Content
+          if ($ui -notmatch 'Delegatum') { throw "UI not served from bundle" }
+          $spa = Invoke-WebRequest -Uri "$base/dashboard" -UseBasicParsing -TimeoutSec 15
+          if ($spa.Content -notmatch 'Delegatum') { throw "SPA fallback broken" }
+          Write-Host "UI check: title + SPA fallback OK"
+          if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+
+      - name: Debug files (always)
+        if: always()
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path debug | Out-Null
+          Copy-Item dist\Delegatum\url.txt debug\ -ErrorAction SilentlyContinue
+          Copy-Item dist\Delegatum\error.log debug\ -ErrorAction SilentlyContinue
+          Get-ChildItem debug -ErrorAction SilentlyContinue | Select-Object Name, Length
+
+      - name: Upload debug files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: DelegatumDesktop-debug
+          path: debug/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Package
+        shell: pwsh
+        run: |
+          Remove-Item dist\Delegatum\url.txt -ErrorAction SilentlyContinue
+          Remove-Item dist\Delegatum\error.log -ErrorAction SilentlyContinue
+          Remove-Item dist\Delegatum\data -Recurse -Force -ErrorAction SilentlyContinue
+          Copy-Item desktop\LISEZ-MOI.txt dist\Delegatum\
+          Copy-Item desktop\README.txt dist\Delegatum\
+          Copy-Item desktop\LIESMICH.txt dist\Delegatum\
+          Copy-Item desktop\LIES-MICH.txt dist\Delegatum\
+          Compress-Archive -Path dist\Delegatum -DestinationPath Delegatum-Windows.zip -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DelegatumDesktop-windows
+          path: Delegatum-Windows.zip
+          retention-days: 90

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import NavBar from '../components/NavBar'
+import { saveBlob } from '../lib/download'
 import { useAuth } from '../hooks/useAuth'
 
 interface TimeEntry {
@@ -65,12 +66,7 @@ export default function TimeTracking() {
       const res = await fetch(`/api/time/export?month=${filterMonth}`, { headers: h })
       if (!res.ok) throw new Error('Export impossible')
       const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `hours_${filterMonth}_${mine ? 'mine' : 'delegation'}.csv`
-      a.click()
-      URL.revokeObjectURL(url)
+      await saveBlob(`hours_${filterMonth}_${mine ? 'mine' : 'delegation'}.csv`, blob)
     } catch (e: any) { setErr(e.message) }
   }
 

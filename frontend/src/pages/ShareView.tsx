@@ -4,6 +4,7 @@ import { useT } from '../i18n/I18nContext'
 import { WrongPasswordError } from '../lib/vault'
 import { b64encode, decryptSharedSections, unwrapSharedDEK, type SharedSection } from '../lib/shareLink'
 import { exportDirectionPDF, type DirectionPreview } from '../lib/pdfExport'
+import { saveBlob } from '../lib/download'
 
 interface ShareInfo {
   token: string
@@ -106,12 +107,7 @@ export default function ShareView() {
       }
       const pdfBytes = await exportDirectionPDF(preview)
       const blob = new Blob([pdfBytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `PV-direction-${info.meeting_title.replace(/\s+/g, '-').slice(0, 40) || 'reunion'}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      await saveBlob(`PV-direction-${info.meeting_title.replace(/\s+/g, '-').slice(0, 40) || 'reunion'}.pdf`, blob)
     } catch (e: any) {
       setErrorMsg(e.message)
     } finally {

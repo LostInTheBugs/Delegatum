@@ -6,6 +6,7 @@ import Footer from '../components/Footer'
 import * as api from '../api/client'
 import { semesterLabel } from '../lib/semester'
 import { exportWorkforceStatsPDF } from '../lib/workforceStatsPdf'
+import { saveBlob } from '../lib/download'
 import { exportAnnualReportPDF } from '../lib/annualReportPdf'
 
 export default function WorkforceStats() {
@@ -94,12 +95,7 @@ export default function WorkforceStats() {
     try {
       const bytes = await exportWorkforceStatsPDF(rows, organization?.name ?? 'Délégation du personnel')
       const blob = new Blob([bytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `statistiques_effectif_${rows[0]?.semester ?? 'historique'}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      await saveBlob(`statistiques_effectif_${rows[0]?.semester ?? 'historique'}.pdf`, blob)
     } catch (e) {
       setErr((e as Error).message)
     } finally {
@@ -118,12 +114,7 @@ export default function WorkforceStats() {
       const data = await api.getAnnualReport(parseInt(reportYear, 10))
       const bytes = await exportAnnualReportPDF(data)
       const blob = new Blob([bytes], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `rapport_activite_${reportYear}.pdf`
-      a.click()
-      URL.revokeObjectURL(url)
+      await saveBlob(`rapport_activite_${reportYear}.pdf`, blob)
     } catch (e) {
       setErr((e as Error).message)
     } finally {
