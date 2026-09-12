@@ -15,7 +15,7 @@ def generate_totp_secret() -> str:
 
 def generate_totp_uri(email: str, secret: str) -> str:
     """Generate the otpauth:// URI for QR code."""
-    org_name = settings.app_name or "Staff Delegation"
+    org_name = settings.app_name or "Delegatum"
     return pyotp.totp.TOTP(secret).provisioning_uri(
         name=email, issuer_name=org_name
     )

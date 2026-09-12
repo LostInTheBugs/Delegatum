@@ -1,5 +1,5 @@
 {
-  "app.title": "Staff Delegation",
+  "app.title": "Delegatum",
   "nav.dashboard": "📋 Mon tableau de bord",
   "nav.organigramme": "👥 Mon organigramme",
   "nav.meetings": "📅 Mes réunions",
@@ -9,8 +9,9 @@
   "nav.organization": "🏢 Mon organisation",
   "nav.profile": "👤 Mon profil",
   "nav.logout": "Déconnexion",
-  "landing.title": "Staff Delegation",
+  "landing.title": "Delegatum",
   "landing.subtitle": "Outil de gestion pour les délégations du personnel au Luxembourg",
+  "landing.language": "Langue",
   "landing.login": "🔑 J'ai déjà un accès",
   "landing.join": "✉️ Créer un accès (code d'invitation)",
   "landing.create": "🏛️ Créer une délégation du personnel",

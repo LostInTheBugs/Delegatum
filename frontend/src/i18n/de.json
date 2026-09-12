@@ -1,5 +1,5 @@
 {
-  "app.title": "Personalvertretung",
+  "app.title": "Delegatum",
   "nav.dashboard": "📋 Mein Dashboard",
   "nav.organigramme": "👥 Mein Organigramm",
   "nav.meetings": "📅 Meine Sitzungen",
@@ -9,8 +9,9 @@
   "nav.organization": "🏢 Meine Organisation",
   "nav.profile": "👤 Mein Profil",
   "nav.logout": "Abmelden",
-  "landing.title": "Personalvertretung",
+  "landing.title": "Delegatum",
   "landing.subtitle": "Verwaltungstool für Personaldelegationen in Luxemburg",
+  "landing.language": "Sprache",
   "landing.login": "🔑 Ich habe bereits Zugang",
   "landing.join": "✉️ Zugang erstellen (Einladungscode)",
   "landing.create": "🏛️ Personaldelegation erstellen",

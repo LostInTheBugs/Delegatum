@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 /** Version locale (synchronisée avec le footer / les releases). */
-const LOCAL_VERSION = '2026.08.032-c1'
+const LOCAL_VERSION = '2026.09.001'
 
 function cmpVersions(a: string, b: string): number {
   const pa = a.replace(/^v/, '').split(/[.\-]/).map(n => parseInt(n) || 0)
@@ -25,13 +25,13 @@ export default function VersionCheck() {
 
   useEffect(() => {
     let cancelled = false
-    fetch('https://api.github.com/repos/LostInTheBugs/StaffDPapp/releases/latest')
+    fetch('https://api.github.com/repos/LostInTheBugs/Delegatum/releases/latest')
       .then(r => (r.ok ? r.json() : null))
       .then(data => {
         if (cancelled || !data?.tag_name) return
         if (cmpVersions(data.tag_name, LOCAL_VERSION) > 0) {
           setLatest(data.tag_name)
-          setUrl(data.html_url || `https://github.com/LostInTheBugs/StaffDPapp/releases/tag/${data.tag_name}`)
+          setUrl(data.html_url || `https://github.com/LostInTheBugs/Delegatum/releases/tag/${data.tag_name}`)
         }
       })
       .catch(() => { /* offline ou API bloquée : silencieux */ })
@@ -45,7 +45,7 @@ export default function VersionCheck() {
       background: '#2b6cb0', color: '#fff', textAlign: 'center',
       padding: '8px 16px', fontSize: '.85rem', fontWeight: 600,
     }}>
-      🚀 Une nouvelle version <strong>{latest}</strong> de StaffDPapp est disponible —{' '}
+      🚀 Une nouvelle version <strong>{latest}</strong> de Delegatum est disponible —{' '}
       <a href={url} target="_blank" rel="noreferrer" style={{ color: '#fff', textDecoration: 'underline' }}>
         voir les nouveautés
       </a>

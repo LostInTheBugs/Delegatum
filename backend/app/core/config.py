@@ -3,7 +3,7 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
-    app_name: str = "Staff Delegation"
+    app_name: str = "Delegatum"
     database_url: str = "sqlite:///./staff_delegation.db"
     secret_key: str = "change-me-in-production-use-openssl-rand-hex-32"
     algorithm: str = "HS256"

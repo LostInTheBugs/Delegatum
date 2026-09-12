@@ -41,7 +41,7 @@ export default function NavBar() {
         <h1 style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {organization?.logo_data
             ? <img src={organization.logo_data} alt="logo" style={{ height: 36, maxWidth: 160, objectFit: 'contain', background: '#fff', borderRadius: 6, padding: 2 }} />
-            : <span>🏢</span>}
+            : <img src="/delegatum-icon.png" alt="" style={{ height: 32, background: '#fff', borderRadius: 6, padding: '3px 4px' }} />}
           {organization?.company_name || t('app.title')}
         </h1>
         <button onClick={logout}>{t('nav.logout')}</button>

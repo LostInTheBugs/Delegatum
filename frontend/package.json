@@ -1,7 +1,7 @@
 {
-  "name": "staff-delegation-frontend",
+  "name": "delegatum-frontend",
   "private": true,
-  "version": "2026.08.032-c1",
+  "version": "2026.09.001",
   "type": "module",
   "scripts": {
     "dev": "vite",

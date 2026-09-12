@@ -1,4 +1,4 @@
-# StaffDPapp — Spécification : coffre-fort PV + double version
+# Delegatum — Spécification : coffre-fort PV + double version
 
 Destinataire : Hermes Agent
 Version : 1.0 — 30 juillet 2026

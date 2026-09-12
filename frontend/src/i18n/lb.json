@@ -1,5 +1,5 @@
 {
-  "app.title": "Staff Delegation",
+  "app.title": "Delegatum",
   "nav.dashboard": "📋 Mäin Dashboard",
   "nav.organigramme": "👥 Mäin Organigramm",
   "nav.meetings": "📅 Meng Versammlungen",
@@ -9,8 +9,9 @@
   "nav.organization": "🏢 Meng Organisatioun",
   "nav.profile": "👤 Mäi Profil",
   "nav.logout": "Ofmellen",
-  "landing.title": "Staff Delegation",
+  "landing.title": "Delegatum",
   "landing.subtitle": "Gestiounsinstrument fir Personalvertriedungen zu Lëtzebuerg",
+  "landing.language": "Sprooch",
   "landing.login": "🔑 Ech hunn schonn en Accès",
   "landing.join": "✉️ En Accès uleeën (Invitatiounscode)",
   "landing.create": "🏛️ Eng Personalvertriedung grënnen",

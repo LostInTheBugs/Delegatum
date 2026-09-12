@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.09.001] — 2026-09-12 (test pre-release)
+
+### 🏛️ Rebranding — StaffDPapp becomes **Delegatum**
+
+- **New name & identity**: the application is now **Delegatum** (formerly "StaffDPapp / Staff Delegation"), consistent with its sister application *Patrimony*. New visual identity — arch emblem, **Delegatum** wordmark and *DATA SOVEREIGNTY* baseline, in navy blue & gold.
+- **UI integration**: the full logo lockup replaces the placeholder on the landing page; the emblem marks the header and the login screen; browser favicon and app icons (ICO 16/32/48, PNG, Apple touch icon) are updated. The landing and login screens were compacted to fit a single laptop screen without scrolling (language pills replaced by a compact selector).
+- **Brand strings**: application title (frontend, FastAPI, TOTP issuer), notifications CLI, footer and release-update banner. The brand name is no longer translated per locale (all five languages display **Delegatum**).
+- **GitHub repository renamed** to `LostInTheBugs/Delegatum` (old URLs redirect automatically); the release-update banner and the footer link point to the new repository.
+- No database or API change — upgrading is a rebuild only.
+
 ## [2026.08.032-c1] — 2026-08-27
 
 ### Fixed

@@ -91,15 +91,18 @@ export default function Login() {
   return (
     <>
       <VersionCheck />
-      <div className="container">
-      <div className="card">
+      <div className="container" style={{ paddingTop: 10 }}>
+      <div style={{ textAlign: 'center', marginBottom: 8 }}>
+        <img src="/delegatum-icon.png" alt="Delegatum" style={{ height: 38 }} />
+      </div>
+      <div className="card card-login">
         <h2>{mfaToken ? t('login.mfa_title', '🔐 Vérification MFA') : t('login.title', '🔑 Connexion')}</h2>
 
         {!mfaToken && publicOrg && (
           <div style={{ textAlign: 'center', marginBottom: 14 }}>
             {publicOrg.logo_data
-              ? <img src={publicOrg.logo_data} alt="logo" style={{ maxHeight: 64, maxWidth: 220, objectFit: 'contain' }} />
-              : <div style={{ fontSize: '2.2rem' }}>🏢</div>}
+              ? <img src={publicOrg.logo_data} alt="logo" style={{ maxHeight: 48, maxWidth: 220, objectFit: 'contain' }} />
+              : <img src="/delegatum-icon.png" alt="" style={{ maxHeight: 64, width: 'auto' }} />}
             <div style={{ fontWeight: 600, marginTop: 6 }}>{publicOrg.company_name || publicOrg.name}</div>
           </div>
         )}

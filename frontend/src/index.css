@@ -20,6 +20,8 @@ body {
   color: var(--gray-800);
   line-height: 1.6;
   min-height: 100vh;
+  /* Clearance for the fixed footer bar */
+  padding-bottom: 36px;
 }
 
 .container {
@@ -204,9 +206,50 @@ h2 {
 
 .logo-area {
   text-align: center;
-  margin-bottom: 32px;
-}
-.logo-icon {
-  font-size: 3rem;
   margin-bottom: 8px;
+}
+.logo-lockup {
+  height: min(190px, 18vh);
+  width: auto;
+  margin-bottom: 6px;
+}
+/* Landing : sous-titre rapproché, carte et disclaimer compactés (tenir sur un écran) */
+.logo-area .subtitle {
+  margin-bottom: 8px;
+  font-size: .92rem;
+}
+.card-compact {
+  padding: 16px 24px;
+}
+.card-compact .btn-group {
+  gap: 10px;
+  margin-bottom: 0;
+}
+.card-compact .btn {
+  padding: 12px 20px;
+}
+/* Login : carte compactée pour tenir sur un écran sans scroll */
+.card-login {
+  padding: 14px 24px;
+}
+.card-login h2 {
+  margin-bottom: 14px;
+}
+.card-login .form-group {
+  margin-bottom: 12px;
+}
+.card-login .form-group input {
+  padding: 9px 12px;
+}
+/* Accessible-only text (visually hidden but read by screen readers) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

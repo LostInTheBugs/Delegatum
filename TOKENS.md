@@ -1,4 +1,4 @@
-# Token usage tracking — StaffDPapp
+# Token usage tracking — Delegatum
 
 LLM token usage for this project, tallied session by session.
 

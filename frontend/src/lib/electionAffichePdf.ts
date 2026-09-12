@@ -53,7 +53,7 @@ export async function generateElectionAffichePdf(opts: {
 
   line('SCRUTIN (Art. L.413-1)', 11, { bold: true })
   line('• Vote secret à l\'urne, représentation proportionnelle (majorité relative < 100 salariés)', 10)
-  line('• Le vote s\'effectue sur la plateforme StaffDPapp (comptes salariés)', 10)
+  line('• Le vote s\'effectue sur la plateforme Delegatum (comptes salariés)', 10)
   y -= 10
 
   line('Le renouvellement de la délégation s\'effectue entre le 1er février et le 31 mars de la 5e année du mandat (Art. L.413-2).', 9, { color: [0.4, 0.4, 0.4] })

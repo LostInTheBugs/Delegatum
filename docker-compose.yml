@@ -30,12 +30,12 @@ services:
       # 504). Vue sur le nouveau serveur lors de la migration depuis l'ancien.
       - "traefik.docker.network=traefik-public"
       # HTTP router (redirects to HTTPS)
-      - "traefik.http.routers.sd-web.rule=Host(`staffdpapp.cloudfr.net`)"
+      - "traefik.http.routers.sd-web.rule=Host(`delegatum.cloudfr.net`) || Host(`staffdpapp.cloudfr.net`)"
       - "traefik.http.routers.sd-web.middlewares=sd-redirect"
       - "traefik.http.middlewares.sd-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.sd-redirect.redirectscheme.permanent=true"
       # HTTPS router
-      - "traefik.http.routers.sd-web-secure.rule=Host(`staffdpapp.cloudfr.net`)"
+      - "traefik.http.routers.sd-web-secure.rule=Host(`delegatum.cloudfr.net`) || Host(`staffdpapp.cloudfr.net`)"
       - "traefik.http.routers.sd-web-secure.tls=true"
       - "traefik.http.routers.sd-web-secure.tls.certresolver=letsencrypt"
       - "traefik.http.routers.sd-web-secure.service=sd-web"

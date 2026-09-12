@@ -1,10 +1,12 @@
-# StaffDPapp — Staff Delegation Application
+# Delegatum — Staff Delegation Application
+
+<img src="frontend/public/delegatum-lockup.png" alt="Delegatum — Data Sovereignty" width="210">
 
 > ⚠️ **Experimental application** — This software is provided for demonstration purposes only. It does not constitute legal advice and is not guaranteed to comply with current Luxembourg legislation. Any use is at the user's own risk. Consult a qualified professional or the [Chambre des Salariés (CSL)](https://www.csl.lu) for any question related to labour law.
 
-Management tool for **staff delegations** in Luxembourg, inspired by the Labour Code (Art. L.412-1, L.414-2, L.414-3, L.415-5, L.416-1).
+Management tool for **staff delegations** in Luxembourg, inspired by the Labour Code (Art. L.412-1, L.414-2, L.414-3, L.415-5, L.416-1). *Formerly known as StaffDPapp.*
 
-Current version: **2026.08.032-c1** — [See GitHub releases](https://github.com/LostInTheBugs/StaffDPapp/releases)
+Current version: **2026.09.001** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
 
 ## Features
 
@@ -62,7 +64,7 @@ All passwords: `demo123456`
 
 **🔄 Demo auto-reset**: the demo resets itself every morning (cron, 06:30 UTC) — all account passwords return to `demo123456`, TOTP is disabled, and the vault password returns to `test123456` (encrypted minutes are preserved). Sample data (meetings, consultations, delegate activities, statistics, notices, election) is seeded via `backend/scripts/seed_demo_data.py`.
 
-- 🎮 **Demo**: https://staffdpapp.cloudfr.net
+- 🎮 **Demo**: https://delegatum.cloudfr.net
 
 ## Installation and deployment
 

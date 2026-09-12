@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""email_sender.py — CLI standalone d'envoi des notifications StaffDPapp.
+"""email_sender.py — CLI standalone d'envoi des notifications Delegatum.
 
 Mode 3 (transport « external ») : l'administrateur exporte les messages
 prêts depuis l'application (JSON), puis lance ce script sur n'importe quelle
@@ -55,7 +55,7 @@ def build_message(item: dict) -> MIMEMultipart:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Envoyer les notifications StaffDPapp exportées")
+    ap = argparse.ArgumentParser(description="Envoyer les notifications Delegatum exportées")
     ap.add_argument("--input", required=True, help="messages.json exporté depuis l'app")
     ap.add_argument("--host", required=True)
     ap.add_argument("--port", type=int, default=587)
