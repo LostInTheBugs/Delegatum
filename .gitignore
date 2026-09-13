@@ -8,6 +8,11 @@ dist/
 .vite/
 .venv/
 
+# Desktop runtime files (diagnostics)
+url.txt
+error.log
+desktop.log
+
 # build artefacts
 tsconfig.tsbuildinfo
 frontend/tsconfig.tsbuildinfo

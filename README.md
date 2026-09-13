@@ -38,7 +38,7 @@ Current version: **2026.09.002** — [See GitHub releases](https://github.com/Lo
 - 🏷️ **Company logo**: upload your organisation's logo (PNG/JPG/SVG, ≤ 512 KB) — displayed in the header of every page and on the login screen (type the organisation identifier shown in My organisation)
 - 📇 **Contact page**: the delegation's contact details (email, phone, office hours — editable by the administrator) plus the bureau, visible to all staff
 - 👤 **My profile**: photo, language, password change, MFA
-- 🖥️ **Windows desktop application**: a self-contained executable (no server, no installer) — unzip `Delegatum-Windows.zip`, double-click `Delegatum.exe`, data stays in a `data/` folder next to the executable; exports use a native “Save as” dialog; user guide in FR/EN/DE/LB (attached to each release)
+- 🖥️ **Desktop application (Windows / macOS)**: self-contained builds (no server, no installer) — unzip `Delegatum-Windows.zip` (double-click `Delegatum.exe`) or `Delegatum-macOS.zip` (double-click `Delegatum.app`; first launch: right-click → Open); data stays in a `data/` folder next to the app (macOS fallback: `~/Library/Application Support/Delegatum`); exports use a native “Save as” dialog; user guides in FR/EN/DE/LB (attached to each release)
 
 ## Demo
 

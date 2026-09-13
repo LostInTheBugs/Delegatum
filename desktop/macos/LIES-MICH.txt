@@ -1,0 +1,83 @@
+DELEGATUM — DESKTOP-APPLIKATIOUN (macOS)
+========================================
+
+🌍 Aner Sproochen: Français → LISEZ-MOI.txt · English → README.txt ·
+   Deutsch → LIESMICH.txt
+
+Gestioun vun Ärer Personalvertriedung (Lëtzebuerg) op ÄREM eegenen Computer.
+Kee Server, kee Konto online, keng Verbindung néideg: Är Daten verloossen
+den Apparat net.
+
+INSTALLATIOUN (2 Minutten, ouni Installateur)
+---------------------------------------------
+1. Entpakt « Delegatum-macOS.zip », wou Dir wëllt (zum Beispill:
+   Dokumenter). Loosst alles zesummen: d'Donnéeë kommen niewent
+   d'Applikatioun.
+2. Duebelklick op « Delegatum.app ».
+
+   Éischten Start: macOS weist eventuell "macOS kann den Entwéckler vun
+   dëser Applikatioun net iwwerpréiwen" (normal fir eng net-signéiert
+   Applikatioun). Rietsklick op « Delegatum.app » → "Opmaachen", duerno
+   "Opmaachen" confirméieren. Duerno geet en Duebelklick.
+
+3. D'Delegatum-Fënster geet op mam Écran « Eng Personalvertriedung
+   grënnen » (nëmmen beim éischte Start).
+
+ÉISCHT SCHRËTT
+--------------
+Beim éischte Start grënnt Dir Är Vertriedung:
+   - Numm vun der Organisatioun, Zuel vun de Beschäftegten;
+   - Koordinaten vum/vun der President(in): dëse éischte Konto ass den
+     Administrateur.
+
+Duerno: « 🔑 Ech hunn schonn en Accès » fir Iech unzemellen. Aner Memberen
+kommen iwwer en Invitatiounscode bäi (« ✉️ En Accès uleeën »).
+
+ÄR DATEN
+--------
+Alles läit am Dossier « data » niewent Delegatum.app:
+   - delegatum.db   : d'Datebank (Memberen, Versammlungen, Protokoller,
+                      Wahlen, Stonnen …);
+   - .secret_key    : lokalen Ënnerschrëftsschlëssel — net deelen;
+   - emails/        : virbereet Benoriichtegungen (.eml-Dateien).
+
+Sécherung = kopéiert dësen Dossier « data » heiansdo op en USB-Stick oder
+eng extern Plack. Restauratioun = den Dossier zréck op seng Plaz kopéieren.
+Tipp: wann Dir Delegatum.app verschiebt, hëlt den Dossier « data » mat.
+
+DATENPROTECTIOUN
+----------------
+Näischt gëtt an d'Internet geschéckt. D'Protokoller ginn an der Applikatioun
+verschlësselt (AES-256-GCM) mat engem Tresor-Passwuert: souguer d'Dateien am
+Dossier « data » enthalen se net am Kloertext. Bewaart den
+Wiederherstelungsschlëssel vum Tresor (« Astellungen ») sécher.
+
+ZOUMAACHEN
+----------
+Maacht d'Fënster zou (roude Knäppchen). D'Applikatioun hält op — keen
+Hannergrondservice bleift aktiv.
+
+PROBLEMER
+---------
+- "macOS kann den Entwéckler net iwwerpréiwen": kuckt Punkt 2
+  (Rietsklick → Opmaachen). Nëmmen eemol.
+- D'Fënster geet net op: start d'Applikatioun nach eng Kéier; wann et
+  weiderhi Problemer gëtt, steet am Fichier "error.log" niewent der
+  Applikatioun alles, wat den Entwéckler brauch.
+- Den Dossier « data » erschéngt net niewent der Applikatioun
+  (geschützten Emplacement): Finder → Menü "Aller" → "Aller au dossier…"
+  → ~/Library/Application Support/Delegatum
+- Vun Null ufänken: Applikatioun zoumaachen an den Dossier « data »
+  läschen (⚠️ alles gëtt geläscht — mécht virdrun eng Sécherung, wann
+  néideg).
+- Computer wiesselen: kopéiert den Dossier « data » niewent déi nei
+  Applikatioun.
+- Aktualiséierung: lued déi nei Archiv erof a ersetzt « Delegatum.app »
+  (behält Ären Dossier « data »).
+
+⚠️ Experimentell Applikatioun — nëmmen fir Demonstratiounszwecker. Si ass
+keeng juristesch Berodung a garantéiert net d'Konformitéit mat der
+lëtzebuerger Gesetzgebung. Fir Froen zum Aarbechtsrecht, konsultéiert eng
+qualifizéierte Fachpersoun oder d'Chambre des Salariés (CSL).
+
+MIT-Lizenz — Quellcode: github.com/LostInTheBugs/Delegatum

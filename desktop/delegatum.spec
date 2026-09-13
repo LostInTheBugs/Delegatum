@@ -1,6 +1,9 @@
 # -*- mode: python ; coding: utf-8 -*-
 # Delegatum Desktop — spec PyInstaller (onedir, sans console).
-# Build : pyinstaller --clean --noconfirm desktop/delegatum.spec  (depuis la racine du dépôt)
+# Build : pyinstaller --clean --noconfirm desktop/delegatum.spec  (depuis la racine du dépôt,
+#         après `npm --prefix frontend run build`)
+# macOS : même commande sur un Mac → dist/Delegatum.app (BUNDLE ; icône .icns
+#         committée — régénérable avec desktop/make_icns.py).
 #
 # onedir et non onefile : le mode onefile s'auto-extrait dans %TEMP% puis se
 # relance, un comportement qui déclenche les heuristiques de Windows Defender
@@ -8,6 +11,7 @@
 # positif). Le mode dossier n'extrait rien : beaucoup moins de détections.
 
 import os
+import sys
 
 ROOT = os.path.abspath(os.path.join(SPECPATH, '..'))  # racine du dépôt, absolue
 BACKEND = os.path.join(ROOT, 'backend')
@@ -92,3 +96,20 @@ coll = COLLECT(
     upx=False,
     name='Delegatum',
 )
+
+# --- macOS : bundle .app (icône .icns, version dans l'Info.plist) ----------
+# N'est exécuté que sur macOS ; sur Windows/Linux la spec produit dist/Delegatum/.
+if sys.platform == 'darwin':
+    appl = BUNDLE(
+        coll,
+        name='Delegatum.app',
+        icon='delegatum.icns',
+        bundle_identifier='com.lostinthebugs.delegatum',
+        version=_ver,
+        info_plist={
+            'NSHighResolutionCapable': True,
+            'LSApplicationCategoryType': 'public.app-category.business',
+            'LSMinimumSystemVersion': '12.0',
+            'NSHumanReadableCopyright': 'MIT License - github.com/LostInTheBugs/Delegatum',
+        },
+    )

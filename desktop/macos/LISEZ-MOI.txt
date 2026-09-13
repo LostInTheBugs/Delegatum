@@ -1,0 +1,81 @@
+DELEGATUM — APPLICATION DE BUREAU (macOS)
+=========================================
+
+🌍 Autres langues : English → README.txt · Deutsch → LIESMICH.txt ·
+   Lëtzebuergesch → LIES-MICH.txt
+
+Gestion de votre délégation du personnel (Luxembourg), sur VOTRE ordinateur.
+Aucun serveur, aucun compte en ligne, aucune connexion requise : vos données
+ne quittent pas la machine.
+
+INSTALLATION (2 minutes, sans installateur)
+-------------------------------------------
+1. Décompressez l'archive « Delegatum-macOS.zip » où vous voulez (par
+   exemple : Documents). Gardez l'ensemble tel quel : les données vivront
+   à côté de l'application.
+2. Double-cliquez sur « Delegatum.app ».
+
+   Premier lancement : macOS peut afficher « macOS ne peut pas vérifier
+   le développeur de cette application » (normal pour une application
+   non signée). Faites un clic droit sur « Delegatum.app » → « Ouvrir »,
+   puis confirmez « Ouvrir ». Les fois suivantes, un double-clic suffit.
+
+3. La fenêtre Delegatum s'ouvre sur l'écran « Créer une délégation du
+   personnel » (premier lancement uniquement).
+
+PREMIERS PAS
+------------
+Au premier lancement, créez votre délégation :
+   - nom de l'organisation, effectif de l'entreprise ;
+   - coordonnées du/de la président(e) : ce premier compte est
+     l'administrateur de l'application.
+
+Ensuite : « 🔑 J'ai déjà un accès » pour vous connecter. Les autres membres
+rejoignent avec un code d'invitation à distribuer (bouton « ✉️ Créer un accès »).
+
+VOS DONNÉES
+-----------
+Tout est dans le dossier « data », à côté de Delegatum.app :
+   - delegatum.db   : la base (membres, réunions, PV, élections, heures…) ;
+   - .secret_key    : clé de signature locale — ne pas la partager ;
+   - emails/        : notifications préparées (fichiers .eml à envoyer).
+
+Sauvegarder = copier ce dossier « data » sur une clé USB ou un disque externe
+de temps en temps. Restaurer = remettre le dossier au même endroit.
+Conseil : si vous déplacez Delegatum.app, emportez aussi le dossier « data ».
+
+CONFIDENTIALITÉ
+---------------
+Rien n'est envoyé sur Internet. Les procès-verbaux (PV) sont chiffrés dans
+l'application (AES-256-GCM) avec un mot de passe de coffre-fort : même les
+fichiers du dossier « data » ne les contiennent pas en clair. Conservez la
+clé de récupération du coffre (`Paramètres`) dans un endroit sûr.
+
+POUR FERMER
+-----------
+Fermez la fenêtre (le bouton rouge). Le logiciel s'arrête — aucun service
+ne reste en arrière-plan.
+
+DÉPANNAGE
+---------
+- « macOS ne peut pas vérifier le développeur » : c'est le point 2
+  (clic droit → Ouvrir). Une seule fois.
+- La fenêtre ne s'ouvre pas : relancez l'application ; en cas de problème
+  persistant, le fichier « error.log », à côté de l'application, contient
+  le détail à transmettre au développeur.
+- Le dossier « data » n'apparaît pas à côté de l'application
+  (emplacement protégé) : Finder → menu « Aller » → « Aller au
+  dossier… » → ~/Library/Application Support/Delegatum
+- Repartir de zéro : fermez l'application et supprimez le dossier « data »
+  (⚠️ tout est effacé — faites d'abord une sauvegarde si nécessaire).
+- Changer d'ordinateur : copiez le dossier « data » à côté de la nouvelle
+  application.
+- Mise à jour : téléchargez la nouvelle archive et remplacez
+  « Delegatum.app » (conservez votre dossier « data »).
+
+⚠️ Application expérimentale — fournie à titre de démonstration uniquement.
+Elle ne constitue pas un conseil juridique et n'est pas garantie conforme à
+la législation luxembourgeoise. Pour toute question de droit du travail,
+consultez un professionnel qualifié ou la Chambre des Salariés (CSL).
+
+Licence MIT — code source : github.com/LostInTheBugs/Delegatum
