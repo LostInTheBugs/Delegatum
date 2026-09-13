@@ -153,16 +153,16 @@ If the email normalization migration stops, two accounts differ only by case: th
 
 ## Development cost (LLM)
 
-This project was built entirely through AI-assisted sessions (Hermes Agent, deepseek-v4-pro / deepseek-v4-flash). Usage so far (cumulative as of 2026-08-24):
+This project was built entirely through AI-assisted sessions (Hermes Agent, deepseek-v4-pro / deepseek-v4-flash). Usage so far (cumulative as of 2026-09-13):
 
 | Metric | Value |
 |---|---|
-| Input tokens | 12 006 698 |
-| Output tokens | 3 131 799 |
-| **Total (input + output)** | **15 138 497** |
-| Cache read (reused at reduced price) | 1 091 047 296 |
-| API calls | 6 000 |
-| **Estimated cost** | **≈ 7.39 USD** |
+| Input tokens | 9 199 640 |
+| Output tokens | 2 553 867 |
+| **Total (input + output)** | **11 753 507** |
+| Cache read (reused at reduced price) | 925 132 160 |
+| API calls | 5 315 |
+| **Estimated cost** | **≈ 6.02 USD** |
 
 Full breakdown: [TOKENS.md](TOKENS.md).
 
