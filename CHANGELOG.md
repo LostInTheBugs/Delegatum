@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.09.003] — 2026-09-13
+
+### 🖥️ Delegatum Desktop — macOS build
+
+- **macOS package**: `Delegatum-macOS.zip` — a self-contained `Delegatum.app` for Apple Silicon (PyInstaller bundle, native WKWebView window via pywebview), built and ad-hoc signed by CI on macOS runners, attached to each GitHub release alongside `Delegatum-Windows.zip`. Data lives in a `data/` folder next to the app (macOS fallback: `~/Library/Application Support/Delegatum` when the app runs from a read-only location); the zip ships the end-user guides in FR / EN / DE / LB.
+- **Desktop launcher**: a `desktop.log` file now records the native-window state (opened / browser fallback) next to the app, for support.
+
 ## [2026.09.002] — 2026-09-12
 
 ### 🖥️ Delegatum Desktop — standalone Windows application
