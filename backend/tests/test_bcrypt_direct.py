@@ -70,3 +70,32 @@ def test_change_password_accepts_exactly_72_bytes(client, org_with_users):
         headers={"Authorization": f"Bearer {tok}"},
     )
     assert r2.status_code == 200
+
+
+def test_multibyte_boundary_72_bytes_is_measured_in_octets():
+    """La limite bcrypt est en OCTETS : 36 × 'é' (72 o) passe, 37 × 'é' (74 o)
+    est refusé — précisément le cas que bcrypt 4 tronquait silencieusement
+    et que bcrypt ≥5 refuse désormais à coup sûr."""
+    from app.schemas.auth import BCRYPT_MAX_BYTES
+
+    ok = "é" * 36
+    assert len(ok.encode("utf-8")) == BCRYPT_MAX_BYTES == 72
+    hashed = hash_password(ok)
+    assert verify_password(ok, hashed) is True
+    assert verify_password("é" * 35, hashed) is False
+
+
+def test_hash_password_refuses_over_72_bytes_defense_in_depth():
+    with pytest.raises(ValueError, match="72 octets"):
+        hash_password("é" * 37)  # 74 octets
+
+
+def test_change_password_rejects_multibyte_over_72_bytes(client, org_with_users):
+    tok = org_with_users["sophie_token"]
+    r = client.put(
+        "/api/auth/password",
+        json={"old_password": "test123456", "new_password": "é" * 37},
+        headers={"Authorization": f"Bearer {tok}"},
+    )
+    assert r.status_code == 400
+    assert "72 octets" in r.json()["detail"]

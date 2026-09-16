@@ -54,8 +54,10 @@ export interface SharedSection {
 
 const CODE_ALPHABET = "ABCDEFGHJKMNPQRSTVWXYZ23456789"; // Crockford, sans I/L/O/U
 
-/** Code de lecture : 8 caractères lisibles (~40 bits d'entropie). */
-export function generateReadCode(length = 8): string {
+/** Code de lecture : 12 caractères lisibles (~59 bits d'entropie — la DEK
+ *  wrappée vit côté serveur, donc on veut de la marge contre une attaque
+ *  hors ligne par l'hébergeur; 8 caractères (~40 bits) était trop court. */
+export function generateReadCode(length = 12): string {
   const alphabetLen = CODE_ALPHABET.length
   // Rejection sampling : 256 % 30 = 16 → sans rejet, les indices 0..15
   // sortiraient 9 fois sur 256 contre 8 pour 16..29 (biais modulo). On

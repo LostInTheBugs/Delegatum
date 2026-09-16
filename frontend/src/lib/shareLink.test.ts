@@ -24,9 +24,9 @@ import {
 } from "./shareLink";
 
 describe("generateReadCode", () => {
-  it("produit 8 caractères de l'alphabet Crockford sans ambiguïté", () => {
+  it("produit 12 caractères de l'alphabet Crockford sans ambiguïté", () => {
     const code = generateReadCode();
-    expect(code).toHaveLength(8);
+    expect(code).toHaveLength(12);
     const alphabet = "ABCDEFGHJKMNPQRSTVWXYZ23456789";
     for (const c of code) {
       expect(alphabet).toContain(c);

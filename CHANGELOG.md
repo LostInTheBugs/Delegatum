@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.09.005] — 2026-09-16
+
+### 🔒 Security & documentation hardening (external review follow-up)
+
+- **JWT library**: `python-jose` 3.3.0 (CVE-2024-33663 / CVE-2024-33664, irregular maintenance) replaced by **PyJWT 2.14.0** — same HS256 flow, confined to `app/core/security.py` (token validation behaviour unchanged, full test suite green).
+- **bcrypt 4.0.1 → 5.0.0**: bcrypt ≥ 5 no longer silently truncates passwords over 72 bytes (it raises instead). The existing byte-length guards (schema + password route) already covered this; `hash_password` now also refuses > 72 bytes as defence in depth, and boundary tests cover multi-byte passwords (36 × “é” = 72 bytes accepted, 37 rejected everywhere).
+- **Shared-minute read code: 8 → 12 characters** (30-symbol Crockford alphabet): ~2^39 → ~2^59. The wrapped DEK lives server-side, so resistance to an offline attack by a hosting administrator is what matters; links created earlier remain valid.
+- **New security docs**: [`THREAT-MODEL.md`](THREAT-MODEL.md) — adversaries (including the hosting employer), trust boundaries, what the chained journal does and does not cover, **sealing cadence and off-server seal retention**, known limits; [`SECURITY.md`](SECURITY.md) — coordinated disclosure; [`CONTRIBUTING.md`](CONTRIBUTING.md) — dev setup, tests, conventions.
+- **GDPR templates** (`docs/gdpr/`, FR/EN/DE/LB): processing register (Art. 30), retention guidance, DPIA screening/canvas, breach procedure — ready to adapt for a delegation.
+- **README**: SQLite/PostgreSQL description made consistent (tech-stack table); LLM build-cost table moved entirely to TOKENS.md; localized READMEs added ([Français](README.fr.md) / [Deutsch](README.de.md) / [Lëtzebuergesch](README.lb.md)); dependency list updated (PyJWT).
+- **Documented operational limits**: app-level rate limiting is per-process / in-memory (single worker by default; restarts reset counters) — now stated in THREAT-MODEL and README; the register integrity banner is only an *anchor* when seals are kept off-server.
+
 ## [2026.09.004] — 2026-09-16
 
 ### 🛡️ Safety register — ITM exports & tamper-evident integrity

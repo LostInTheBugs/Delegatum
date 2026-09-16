@@ -6,7 +6,9 @@
 
 Management tool for **staff delegations** in Luxembourg, inspired by the Labour Code (Art. L.412-1, L.414-2, L.414-3, L.415-5, L.416-1). *Formerly known as StaffDPapp.*
 
-Current version: **2026.09.004** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
+🌍 Français : [README.fr.md](README.fr.md) · Deutsch : [README.de.md](README.de.md) · Lëtzebuergesch : [README.lb.md](README.lb.md)
+
+Current version: **2026.09.005** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
 
 ## Features
 
@@ -119,12 +121,17 @@ The port can be overridden via the `SD_PORT` environment variable in all context
 - 🔐 **JWT revocation**: every token carries a unique `jti` and the account's security version. `POST /api/auth/logout` revokes the current token; `POST /api/auth/revoke-user/{id}` (admin) and member removal revoke **all** tokens of a user immediately — no more 24h grace period for compromised or removed accounts.
 - 🗳️ **Structural ballot anonymity**: votes are stored as aggregated per-candidate counters only (`election_vote_tallies`) — no per-voter row exists, so a ballot can never be correlated to a choice, even with full read access to the database (secret ballot, L.413-5).
 - 🛡️ **Rate limiting cannot be bypassed by forged headers**: nginx overwrites `X-Forwarded-For` with the direct peer address (client-supplied values are dropped); `CF-Connecting-IP` is preferred when present (behind Cloudflare). Residual limitation: behind Traefik the rate-limit is per entry point, not per end-user IP.
+- 🧯 **App-level rate limiting is in-memory, per process**: counters reset on restart and are not shared across workers (the default deployment runs a single uvicorn worker). Treat it as defence-in-depth alongside the Traefik/Cloudflare layer — documented in [THREAT-MODEL.md](THREAT-MODEL.md#5-known-limitations-deliberate-documented).
 - 🔒 **Passwords**: bcrypt directly (no unmaintained passlib), passwords over 72 bytes rejected explicitly (no silent bcrypt truncation), Argon2id for invitation codes.
+
+## Data protection (GDPR)
+
+Ready-to-adapt templates ship with the repository — processing register (Art. 30), retention guidance and a DPIA (Art. 35) screening/canvas: [Français](docs/gdpr/README.fr.md) · [English](docs/gdpr/README.en.md) · [Deutsch](docs/gdpr/README.de.md) · [Lëtzebuergesch](docs/gdpr/README.lb.md).
 
 ## Main dependencies
 
 - **Frontend**: React 18, TypeScript, Vite, React Router 6
-- **Backend**: Python 3.11, FastAPI, SQLAlchemy, python-jose, pyotp
+- **Backend**: Python 3.11, FastAPI, SQLAlchemy, PyJWT, pyotp
 - **Database**: SQLite (development), PostgreSQL (production recommended)
 - **Reverse proxy**: Traefik + Let's Encrypt (HTTPS)
 
@@ -148,24 +155,13 @@ If the email normalization migration stops, two accounts differ only by case: th
 |-------|------------|
 | Frontend | React 18, TypeScript, Vite |
 | Backend | Python 3.11, FastAPI, SQLAlchemy |
-| Database | SQLite |
+| Database | SQLite (development), PostgreSQL (production recommended) |
 | Reverse proxy | Traefik + Let's Encrypt (HTTPS) |
 | Deployment | Docker Compose |
 
 ## Development cost (LLM)
 
-This project was built entirely through AI-assisted sessions (Hermes Agent, deepseek-v4-pro / deepseek-v4-flash). Usage so far (cumulative as of 2026-09-13):
-
-| Metric | Value |
-|---|---|
-| Input tokens | 9 199 640 |
-| Output tokens | 2 553 867 |
-| **Total (input + output)** | **11 753 507** |
-| Cache read (reused at reduced price) | 925 132 160 |
-| API calls | 5 315 |
-| **Estimated cost** | **≈ 6.02 USD** |
-
-Full breakdown: [TOKENS.md](TOKENS.md).
+This project is built through AI-assisted sessions — token usage and cost ledger: [TOKENS.md](TOKENS.md).
 
 ## Legal references
 

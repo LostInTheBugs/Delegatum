@@ -4,7 +4,8 @@ import os
 import secrets
 
 import bcrypt
-from jose import JWTError, jwt
+import jwt                                  # PyJWT (python-jose retiré : CVEs ≤3.3.0 + maintenance erratique)
+from jwt.exceptions import InvalidTokenError
 from argon2 import PasswordHasher, Type
 from argon2.exceptions import VerificationError
 
@@ -57,6 +58,11 @@ def hash_password(password: str) -> str:
     sur les tests (roundtrip, legacy, 72-octets) — c'est juste plus rapide.
     """
     rounds = int(os.environ.get("SD_BCRYPT_ROUNDS", "12"))
+    # Défense en profondeur : bcrypt ≥5 lève ValueError au-delà de 72 octets
+    # (plus de troncature silencieuse). Les gardes schéma/route refusent déjà
+    # ces mots de passe en amont — on ne doit jamais arriver ici avec >72 o.
+    if len(password.encode("utf-8")) > 72:
+        raise ValueError("Mot de passe trop long (72 octets maximum) — refusé, jamais tronqué")
     salt = bcrypt.gensalt(rounds=rounds)
     return bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
 
@@ -86,7 +92,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def decode_access_token(token: str) -> Optional[dict]:
     try:
         return jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
-    except JWTError:
+    except InvalidTokenError:
         return None
 
 
