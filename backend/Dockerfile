@@ -2,9 +2,9 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system deps for psycopg2
+# Install system deps for psycopg2 + openssl (horodatage RFC 3161 des sceaux du registre)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc libpq-dev && \
+    gcc libpq-dev openssl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .

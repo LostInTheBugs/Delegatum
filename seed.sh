@@ -58,4 +58,42 @@ invite_and_join "david@demo.lu" "David" "Fischer" "suppleant" "membre"
 invite_and_join "clara@demo.lu" "Clara" "Becker" "suppleant" "membre"
 invite_and_join "lucas@demo.lu" "Lucas" "Thill" "suppleant" "membre"
 
+# 4. Délégué sécurité/santé + registre S&S (constats d'exemple — art. L.414-14)
+login_token() {
+  local email=$1
+  CAPTCHA=$(fetch_captcha)
+  CID="${CAPTCHA%%:*}"
+  CANS="${CAPTCHA##*:}"
+  curl -sf -X POST "$HOST/api/auth/login" -H 'Content-Type: application/json' \
+    -d "{\"email\":\"$email\",\"password\":\"demo123456\",\"captcha_id\":\"$CID\",\"captcha_answer\":\"$CANS\"}" \
+    | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])'
+}
+
+MARC_TOK=$(login_token "marc@demo.lu")
+MARC_ID=$(curl -sf "$HOST/api/organization/members" -H "Authorization: Bearer $MARC_TOK" \
+  | python3 -c 'import sys,json; print([m["id"] for m in json.load(sys.stdin) if m["email"]=="marc@demo.lu"][0])')
+curl -sf -X PUT "$HOST/api/organization/members/$MARC_ID/designate" \
+  -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+  -d '{"field":"securite_sante","value":true}' >/dev/null && echo "  Marc Weber désigné délégué sécurité/santé"
+
+# Constats d'exemple — uniquement si le registre est vide (re-seed sans doublons)
+NB=$(curl -sf "$HOST/api/safety-register" -H "Authorization: Bearer $MARC_TOK" \
+  | python3 -c 'import sys,json; print(len(json.load(sys.stdin)))')
+if [ "$NB" = "0" ]; then
+  D1=$(date -d "-12 days" +%F); D2=$(date -d "-8 days" +%F); D3=$(date -d "-3 days" +%F)
+  add_entry() {
+    curl -sf -X POST "$HOST/api/safety-register" -H "Authorization: Bearer $MARC_TOK" -H 'Content-Type: application/json' \
+      -d "{\"entry_date\":\"$1\",\"location\":\"$2\",\"description\":\"$3\"}" \
+      | python3 -c 'import sys,json; print(json.load(sys.stdin)["id"])'
+  }
+  E1=$(add_entry "$D1" "Atelier 2" "Éclairage défectueux au-dessus de la machine 4 — risque en zone de passage")
+  E2=$(add_entry "$D2" "Sous-sol" "Extincteur du local technique : contrôle annuel dépassé")
+  E3=$(add_entry "$D3" "Réfectoire" "Fenêtre qui ferme mal — courant d’air, chauffage qui tourne à vide")
+  curl -sf -X POST "$HOST/api/safety-register/$E1/countersign" -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+    -d '{"chef_service_name":"M. Reuter (chef d’atelier)"}' >/dev/null
+  curl -sf -X POST "$HOST/api/safety-register/$E2/countersign" -H "Authorization: Bearer $TOK" -H 'Content-Type: application/json' \
+    -d '{"chef_service_name":"Mme Wagner (responsable bâtiment)"}' >/dev/null
+  echo "  registre S&S : 3 constats d'exemple (2 contresignés, 1 en attente)"
+fi
+
 echo "✅ Seed terminé"

@@ -10,7 +10,7 @@ from app.models.delegate_activity import DelegateActivity
 from app.models.notice import NoticePost
 from app.models.compliance import ComplianceEvent
 from app.models.election import Election, ElectionStatus, ElectionCandidate, ElectionBallot, ElectionVoteTally
-from app.models.safety_register import SafetyRegisterEntry
+from app.models.safety_register import SafetyRegisterEntry, SafetyRegisterEvent, SafetyRegisterSeal
 from app.models.jwt_revocation import JwtRevocation
 
 __all__ = [
@@ -24,6 +24,6 @@ __all__ = [
     "NoticePost",
     "ComplianceEvent",
     "Election", "ElectionStatus", "ElectionCandidate", "ElectionBallot", "ElectionVoteTally",
-    "SafetyRegisterEntry",
+    "SafetyRegisterEntry", "SafetyRegisterEvent", "SafetyRegisterSeal",
     "JwtRevocation",
 ]

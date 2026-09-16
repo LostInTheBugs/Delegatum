@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.09.004] — 2026-09-16
+
+### 🛡️ Safety register — ITM exports & tamper-evident integrity
+
+- **ITM dossier export**: one click produces the printable register PDF (entries, countersignatures, Art. L.414-14 references, integrity annex) together with the machine-readable **integrity JSON**; a standalone **CSV export** covers the full register (active + voided entries). Designed for inspection by the *Inspection du travail et des mines*.
+- **Tamper-evident journal**: every register action (create / countersign / void) is appended to a SHA-256 hash chain (`event_hash = sha256(prev_hash + "|" + payload_json)`) — any later edit or deletion is detectable by recomputation. The register page shows a live integrity banner (chain fingerprint, event count, verification status).
+- **Hard delete removed**: entries are no longer deleted but **voided with a mandatory reason** (author while pending, board afterwards, journal-traced) — the record is never lost.
+- **Seals + RFC 3161 timestamping**: the board can seal the register at any time (a daily job also seals automatically when new events exist). Each seal freezes {event count, chain fingerprint}, is timestamped by a public RFC 3161 authority (`openssl ts`, DigiCert/Sectigo) and emailed to the board as an external copy.
+- **Public verification page** (`/verify`): anyone — the inspectorate included — can drop the integrity JSON and get an in-browser ✅/❌ verdict (chain, register-vs-journal projection, seals); no account required, nothing is sent to the server.
+- **Migration `20260801_0018`** (idempotent): journal + seals tables, void columns; pre-existing entries are backfilled into the chain. New `/api/safety-register/...` routes (integrity, exports, seal, void); the old `DELETE` endpoint is gone.
+
 ## [2026.09.003] — 2026-09-13
 
 ### 🖥️ Delegatum Desktop — macOS build

@@ -111,6 +111,16 @@ Domaine : {category}<br>
 <p>Consultez le tableau de conformité de l'application : <a href="{base_url}">{base_url}</a></p>
 <p>{signature}</p>""",
         },
+        "register_seal": {
+            "subject": "🔐 Sceau du registre sécurité/santé — {event_count} événement(s) ({org_name})",
+            "body": """<p>Bonjour {recipient_name},</p>
+<p>🔐 <strong>Sceau du registre sécurité/santé</strong> (art. L.414-14) — {sealed_at}</p>
+<p>Événements chaînés : <strong>{event_count}</strong><br>
+Empreinte SHA-256 du registre : <code>{head_hash}</code></p>
+<p>{tsa_note}</p>
+<p>Conservez cet email : il constitue une copie externe du sceau du registre (preuve de non-modification). Le registre est consultable dans l'application : <a href="{register_url}">{register_url}</a></p>
+<p>{signature}</p>""",
+        },
     },
     "en": {
         "meeting_invite": {
@@ -184,6 +194,16 @@ Topic: {category}<br>
 <p>⚠️ <strong>Legal reminder — {label}</strong></p>
 <p>{details}</p>
 <p>Check the compliance dashboard in the app: <a href="{base_url}">{base_url}</a></p>
+<p>{signature}</p>""",
+        },
+        "register_seal": {
+            "subject": "🔐 Safety & health register seal — {event_count} event(s) ({org_name})",
+            "body": """<p>Hello {recipient_name},</p>
+<p>🔐 <strong>Safety &amp; health register seal</strong> (Art. L.414-14) — {sealed_at}</p>
+<p>Chained events: <strong>{event_count}</strong><br>
+Register SHA-256 fingerprint: <code>{head_hash}</code></p>
+<p>{tsa_note}</p>
+<p>Keep this email: it is an external copy of the register seal (tamper-evidence). The register is available in the app: <a href="{register_url}">{register_url}</a></p>
 <p>{signature}</p>""",
         },
     },
@@ -261,6 +281,16 @@ Bereich: {category}<br>
 <p>Prüfen Sie das Konformitäts-Dashboard in der App: <a href="{base_url}">{base_url}</a></p>
 <p>{signature}</p>""",
         },
+        "register_seal": {
+            "subject": "🔐 Siegel des Sicherheitsregisters — {event_count} Ereignis(se) ({org_name})",
+            "body": """<p>Guten Tag {recipient_name},</p>
+<p>🔐 <strong>Siegel des Sicherheits- und Gesundheitsregisters</strong> (Art. L.414-14) — {sealed_at}</p>
+<p>Verkettete Ereignisse: <strong>{event_count}</strong><br>
+SHA-256-Fingerabdruck des Registers: <code>{head_hash}</code></p>
+<p>{tsa_note}</p>
+<p>Bewahren Sie diese E-Mail auf: Sie ist eine externe Kopie des Registersiegels (Nachweis der Unverändertheit). Das Register ist in der App einsehbar: <a href="{register_url}">{register_url}</a></p>
+<p>{signature}</p>""",
+        },
     },
     "pt": {
         "meeting_invite": {
@@ -334,6 +364,16 @@ Domínio: {category}<br>
 <p>⚠️ <strong>Lembrete legal — {label}</strong></p>
 <p>{details}</p>
 <p>Consulte o painel de conformidade na aplicação: <a href="{base_url}">{base_url}</a></p>
+<p>{signature}</p>""",
+        },
+        "register_seal": {
+            "subject": "🔐 Selo do registo de segurança/saúde — {event_count} evento(s) ({org_name})",
+            "body": """<p>Olá {recipient_name},</p>
+<p>🔐 <strong>Selo do registo de segurança e saúde</strong> (art. L.414-14) — {sealed_at}</p>
+<p>Eventos encadeados: <strong>{event_count}</strong><br>
+Impressão SHA-256 do registo: <code>{head_hash}</code></p>
+<p>{tsa_note}</p>
+<p>Guarde este email: constitui uma cópia externa do selo do registo (prova de não alteração). O registo está disponível na aplicação: <a href="{register_url}">{register_url}</a></p>
 <p>{signature}</p>""",
         },
     },

@@ -18,6 +18,7 @@ import Elections from './pages/Elections'
 import { FormationPage, SafetyRegisterPage, ProtectionPage } from './pages/LegalPages'
 import Notifications from './pages/Notifications'
 import ShareView from './pages/ShareView'
+import VerifyRegister from './pages/VerifyRegister'
 import Consultations from './pages/Consultations'
 import WorkforceStats from './pages/WorkforceStats'
 import ContactPage from './pages/ContactPage'
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/workforce-stats" element={<ModuleRoute module="workforce_stats"><WorkforceStats /></ModuleRoute>} />
       <Route path="/contact" element={<ModuleRoute module="contact"><ContactPage /></ModuleRoute>} />
       <Route path="/p/:token" element={<ShareView />} />
+      <Route path="/verify" element={<VerifyRegister />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

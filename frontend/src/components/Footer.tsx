@@ -15,10 +15,13 @@ export default function Footer() {
       justifyContent: 'center',
       gap: 24,
     }}>
-      <span>Delegatum v2026.09.003</span>
+      <span>Delegatum v2026.09.004</span>
       <a href="https://github.com/LostInTheBugs/Delegatum" target="_blank" rel="noopener noreferrer"
         style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'underline' }}>
         GitHub
+      </a>
+      <a href="/verify" style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'underline' }}>
+        🔍 Vérification
       </a>
       <span>Art. L.412-1 · L.415-5 — Luxembourg 🇱🇺</span>
     </footer>

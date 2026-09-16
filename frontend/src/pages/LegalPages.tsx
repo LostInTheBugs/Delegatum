@@ -3,6 +3,9 @@ import { useAuth } from '../hooks/useAuth'
 import { useT } from '../i18n/I18nContext'
 import NavBar from '../components/NavBar'
 import * as api from '../api/client'
+import { saveBlob } from '../lib/download'
+import { exportSafetyRegisterPDF } from '../lib/registerPdf'
+import { sha256Hex } from '../lib/registerIntegrity'
 
 const STATUS_BADGE: Record<string, React.CSSProperties> = {
   protected: { background: '#e6f4ea', color: 'var(--green)', padding: '2px 8px', borderRadius: 10, fontSize: '.75rem' },
@@ -78,20 +81,29 @@ export function FormationPage() {
 }
 
 export function SafetyRegisterPage() {
-  const { user } = useAuth()
+  const { user, organization } = useAuth()
   const { t } = useT()
   const [entries, setEntries] = useState<api.SafetyRegisterEntry[]>([])
+  const [integrity, setIntegrity] = useState<api.RegisterIntegrity | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const [form, setForm] = useState({ entry_date: '', location: '', description: '' })
-  const canWrite = user?.role === 'admin' || ['president', 'vice_president', 'secretaire'].includes(user?.delegue_role || '') || !!user?.is_delegue_securite_sante
+  const isBureau = user?.role === 'admin' || ['president', 'vice_president', 'secretaire'].includes(user?.delegue_role || '')
+  const canWrite = isBureau || !!user?.is_delegue_securite_sante
+  const token = localStorage.getItem('token') || ''
 
   async function load() {
-    try { setEntries(await api.listSafetyRegister()) } catch (e: any) { setErr(e.message) }
+    try {
+      const [es, integ] = await Promise.all([api.listSafetyRegister(), api.getRegisterIntegrity()])
+      setEntries(es)
+      setIntegrity(integ)
+    } catch (e: any) { setErr(e.message) }
   }
   useEffect(() => { load() }, [])
 
   async function create(e: FormEvent) {
-    e.preventDefault(); setErr(null)
+    e.preventDefault(); setErr(null); setNotice(null)
     try {
       await api.createSafetyRegisterEntry({ entry_date: form.entry_date, location: form.location, description: form.description })
       setForm({ entry_date: '', location: '', description: '' })
@@ -108,13 +120,67 @@ export function SafetyRegisterPage() {
     } catch (ex: any) { setErr(ex.message) }
   }
 
-  async function remove(id: number) {
-    if (!confirm(t('register.delete_confirm'))) return
+  async function voidEntry(id: number) {
+    const reason = prompt(t('register.void_prompt'))
+    if (reason === null) return
+    if (reason.trim().length < 3) { setErr(t('register.void_too_short')); return }
+    setErr(null); setNotice(null)
     try {
-      await api.deleteSafetyRegisterEntry(id)
+      await api.voidSafetyRegisterEntry(id, reason.trim())
       await load()
     } catch (ex: any) { setErr(ex.message) }
   }
+
+  async function authFetch(path: string): Promise<Response> {
+    const res = await fetch(path, { headers: { Authorization: 'Bearer ' + token } })
+    if (!res.ok) throw new Error('Export impossible')
+    return res
+  }
+
+  async function exportCSV() {
+    setErr(null)
+    try {
+      const res = await authFetch('/api/safety-register/export.csv')
+      const day = new Date().toISOString().slice(0, 10)
+      await saveBlob(`registre_securite_${day}.csv`, await res.blob())
+    } catch (e: any) { setErr(e.message) }
+  }
+
+  async function exportDossier() {
+    setBusy(true); setErr(null); setNotice(null)
+    try {
+      const res = await authFetch('/api/safety-register/export.json')
+      const blob = await res.blob()
+      const text = await blob.text()
+      let digest: string | null = null
+      try { digest = await sha256Hex(text) } catch { digest = null }
+      const bytes = await exportSafetyRegisterPDF({
+        orgName: organization?.name ?? 'Délégation du personnel',
+        entries,
+        integrity: {
+          eventCount: integrity?.event_count ?? 0,
+          headHash: integrity?.head_hash ?? null,
+          ok: integrity?.ok ?? false,
+          seals: integrity?.seals ?? [],
+        },
+        dossierDigest: digest,
+      })
+      const day = new Date().toISOString().slice(0, 10)
+      await saveBlob(`registre_securite_${day}.pdf`, new Blob([bytes], { type: 'application/pdf' }))
+      await saveBlob(`registre_securite_integrite_${day}.json`, blob)
+    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+  }
+
+  async function sealNow() {
+    setBusy(true); setErr(null); setNotice(null)
+    try {
+      const r = await api.sealSafetyRegister()
+      setNotice(`${t('register.seal_done')} (${r.tsa_status} · ${r.event_count} ${t('register.integrity_events').toLowerCase()})`)
+      await load()
+    } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
+  }
+
+  const lastSeal = integrity?.seals?.[0] ?? null
 
   return (
     <>
@@ -125,6 +191,39 @@ export function SafetyRegisterPage() {
           {t('register.subtitle')} — <em>Art. L.414-14</em>
         </p>
         {err && <div className="error-msg">{err}</div>}
+        {notice && <div style={{ background: '#e6f4ea', color: 'var(--green)', padding: '8px 12px', borderRadius: 6, fontSize: '.85rem', marginBottom: 12 }}>{notice}</div>}
+
+        {integrity && (
+          <div className="card" style={{ padding: 10, marginBottom: 14, display: 'flex', flexWrap: 'wrap', gap: 14, alignItems: 'center', fontSize: '.8rem' }}>
+            <span style={{ fontWeight: 600, color: integrity.ok ? 'var(--green)' : 'var(--red)' }}>
+              {integrity.ok ? '✅ ' + t('register.integrity_ok') : '⚠️ ' + t('register.integrity_ko')}
+            </span>
+            <span>{t('register.integrity_events')} : <strong>{integrity.event_count}</strong></span>
+            <span>{t('register.integrity_head')} : <code style={{ fontSize: '.72rem' }}>{integrity.head_hash ? integrity.head_hash.slice(0, 16) + '…' : '—'}</code></span>
+            <span>{lastSeal
+              ? `${t('register.integrity_last_seal')} : ${lastSeal.sealed_at ? new Date(lastSeal.sealed_at).toLocaleDateString() : '—'} (${lastSeal.tsa_status})`
+              : t('register.integrity_no_seal')}</span>
+            {isBureau && (
+              <button className="btn" disabled={busy} onClick={sealNow}
+                style={{ fontSize: '.75rem', padding: '4px 10px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+                {t('register.seal')}
+              </button>
+            )}
+            <a href="/verify" style={{ color: 'var(--blue)', fontSize: '.78rem' }}>{t('register.verify_link')}</a>
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+          <button className="btn" disabled={busy} onClick={exportDossier}
+            style={{ fontSize: '.78rem', padding: '6px 12px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+            {t('register.export_pdf')}
+          </button>
+          <button className="btn" onClick={exportCSV}
+            style={{ fontSize: '.78rem', padding: '6px 12px', background: 'var(--gray-200)', color: 'var(--gray-800, #333)', border: 'none', borderRadius: 4, cursor: 'pointer' }}>
+            {t('register.export_csv')}
+          </button>
+        </div>
+        <p style={{ fontSize: '.75rem', color: 'var(--gray-600)', marginTop: 0 }}>{t('register.export_hint')}</p>
 
         {canWrite && (
           <form onSubmit={create} className="card mb-24" style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -139,29 +238,46 @@ export function SafetyRegisterPage() {
 
         {entries.length === 0 && <p style={{ color: 'var(--gray-600)' }}>{t('register.empty')}</p>}
         {entries.map(e => (
-          <div key={e.id} className="card mb-24" style={{ padding: 10 }}>
+          <div key={e.id} className="card mb-24" style={{ padding: 10, opacity: e.status === 'voided' ? 0.75 : 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
               <div style={{ fontSize: '.85rem' }}>
                 <strong>📅 {new Date(e.entry_date).toLocaleDateString()}</strong>
                 {e.location && <span> · 📍 {e.location}</span>}
                 <span style={{ marginLeft: 8, fontSize: '.75rem', color: 'var(--gray-600)' }}>{e.delegate_name} · {t('register.by')} {e.created_by_name}</span>
               </div>
-              <span style={e.status === 'countersigned' ? STATUS_BADGE.protected : { ...STATUS_BADGE.expired, color: '#b06000', background: '#fff4e5' }}>
-                {e.status === 'countersigned' ? '✅ ' + t('register.countersigned') : '⏳ ' + t('register.pending')}
+              <span style={
+                e.status === 'countersigned' ? STATUS_BADGE.protected
+                  : e.status === 'voided'
+                    ? { ...STATUS_BADGE.expired, color: 'var(--red)' }
+                    : { ...STATUS_BADGE.expired, color: '#b06000', background: '#fff4e5' }
+              }>
+                {e.status === 'countersigned' ? '✅ ' + t('register.countersigned')
+                  : e.status === 'voided' ? '✖ ' + t('register.voided')
+                    : '⏳ ' + t('register.pending')}
               </span>
             </div>
-            <p style={{ fontSize: '.85rem', margin: '6px 0' }}>{e.description}</p>
+            <p style={{ fontSize: '.85rem', margin: '6px 0' }}>{e.status === 'voided' ? <s>{e.description}</s> : e.description}</p>
             {e.status === 'countersigned' && e.chef_service_name && (
               <p style={{ fontSize: '.78rem', color: 'var(--gray-600)', margin: 0 }}>
                 ✍️ {t('register.chef_label')} : <strong>{e.chef_service_name}</strong> — {e.countersigned_at ? new Date(e.countersigned_at).toLocaleDateString() : ''}
+              </p>
+            )}
+            {e.status === 'voided' && (
+              <p style={{ fontSize: '.78rem', color: 'var(--red)', margin: 0 }}>
+                ✖ {t('register.voided_by')} {e.voided_by_name || '—'} — {e.voided_at ? new Date(e.voided_at).toLocaleDateString() : ''} · {t('register.void_reason')} : {e.void_reason}
+              </p>
+            )}
+            {e.event_hash && (
+              <p style={{ fontSize: '.7rem', color: 'var(--gray-500, #999)', margin: '4px 0 0' }}>
+                🔗 {t('register.event_hash')} : <code>{e.event_hash.slice(0, 16)}…</code>
               </p>
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
               {e.can_countersign && e.status === 'pending' && (
                 <button className="btn" style={{ fontSize: '.75rem', padding: '4px 10px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }} onClick={() => countersign(e.id)}>✍️ {t('register.countersign')}</button>
               )}
-              {e.can_delete && (
-                <button className="btn" style={{ fontSize: '.75rem', padding: '4px 10px', background: 'var(--gray-300)', border: 'none', borderRadius: 4, cursor: 'pointer', color: 'var(--red)' }} onClick={() => remove(e.id)}>🗑️</button>
+              {e.can_void && (
+                <button className="btn" style={{ fontSize: '.75rem', padding: '4px 10px', background: 'var(--gray-300)', border: 'none', borderRadius: 4, cursor: 'pointer', color: 'var(--red)' }} onClick={() => voidEntry(e.id)}>✖ {t('register.void')}</button>
               )}
             </div>
           </div>

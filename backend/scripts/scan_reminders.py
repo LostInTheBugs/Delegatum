@@ -37,6 +37,7 @@ from app.services.email_service import (  # noqa: E402
     scan_consultation_reminders,
     scan_compliance_reminders,
 )
+from app.services.register_chain import auto_seal_all  # noqa: E402
 
 # Une ligne jwt_revocations ne sert plus rien passé l'expiration du jeton
 # (24 h au maximum) — on purge avec une marge de 48 h pour ne laisser que
@@ -62,14 +63,19 @@ def main() -> int:
     total = 0
     db = SessionLocal()
     purged = 0
+    seals = 0
     try:
         total += scan_due_reminders(db, base_url=base_url)
         total += scan_consultation_reminders(db, base_url=base_url)
         total += scan_compliance_reminders(db, base_url=base_url)
+        # Sceaux du registre sécurité/santé (uniquement si des événements
+        # ne sont pas encore scellés — idempotent)
+        seals, _seal_emails = auto_seal_all(db, base_url=base_url)
         purged = purge_expired_revocations(db)
     finally:
         db.close()
-    print(f"[scan-reminders] {total} rappel(s) mis en file, {purged} révocation(s) JWT purgée(s)")
+    print(f"[scan-reminders] {total} rappel(s) mis en file, {seals} sceau(x) du registre créé(s), "
+          f"{purged} révocation(s) JWT purgée(s)")
     return 0
 
 

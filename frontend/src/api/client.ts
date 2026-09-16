@@ -315,13 +315,50 @@ export interface SafetyRegisterEntry {
   entry_date: string
   location: string
   description: string
-  status: 'pending' | 'countersigned'
+  status: 'pending' | 'countersigned' | 'voided'
   chef_service_name: string
   countersigned_at: string | null
+  voided_at: string | null
+  void_reason: string
+  voided_by_name: string
   delegate_name: string
   created_by_name: string
+  event_hash: string | null
   can_countersign: boolean
-  can_delete: boolean
+  can_void: boolean
+}
+
+export interface RegisterSealInfo {
+  id: number
+  sealed_at: string | null
+  event_count: number
+  head_signature: string
+  tsa_status: string
+  auto: boolean
+}
+
+export interface RegisterIntegrity {
+  ok: boolean
+  event_count: number
+  head_hash: string | null
+  last_event_at: string | null
+  chain_ok: boolean
+  projection_ok: boolean
+  projection_mismatches: { entry_id: number; field: string; expected: string; actual: string }[]
+  seals_ok: boolean
+  seals_checked: number
+  broken_seals: number[]
+  seals: RegisterSealInfo[]
+}
+
+export interface RegisterSealResult {
+  id: number
+  sealed_at: string
+  event_count: number
+  head_hash: string
+  tsa_status: string
+  tsa_url: string | null
+  emails_queued: number
 }
 
 export function listSafetyRegister(): Promise<SafetyRegisterEntry[]> {
@@ -336,8 +373,16 @@ export function countersignEntry(entryId: number, chefServiceName: string): Prom
   return request(`/safety-register/${entryId}/countersign`, { method: 'POST', body: JSON.stringify({ chef_service_name: chefServiceName }) })
 }
 
-export function deleteSafetyRegisterEntry(entryId: number): Promise<void> {
-  return request(`/safety-register/${entryId}`, { method: 'DELETE' })
+export function voidSafetyRegisterEntry(entryId: number, reason: string): Promise<{ status: string }> {
+  return request(`/safety-register/${entryId}/void`, { method: 'POST', body: JSON.stringify({ reason }) })
+}
+
+export function getRegisterIntegrity(): Promise<RegisterIntegrity> {
+  return request('/safety-register/integrity')
+}
+
+export function sealSafetyRegister(): Promise<RegisterSealResult> {
+  return request('/safety-register/seal', { method: 'POST' })
 }
 
 export interface ProtectionPerson {

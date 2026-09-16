@@ -1,17 +1,33 @@
 """Chantier C — congé-formation (L.415-9), registre sécurité/santé (L.414-14),
-périodes protégées (L.415-10/11)."""
+périodes protégées (L.415-10/11).
 
+Registre sécurité/santé (v2026.09.004) : journal append-only chaîné SHA-256
+(create / countersign / void), annulation motivée au lieu de la suppression,
+exports ITM (CSV + dossier d'intégrité JSON) et sceaux horodatés RFC 3161.
+Logique de chaîne : app/services/register_chain.py ; vérification publique : /verify.
+"""
+
+import csv
+import io
+import json
 from datetime import date, datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_module
-from app.models import User, Organization, SafetyRegisterEntry
+from app.models import (
+    Organization,
+    SafetyRegisterEntry,
+    SafetyRegisterEvent,
+    SafetyRegisterSeal,
+    User,
+)
 from app.models.election import Election, ElectionStatus
 from app.models.time_entry import TimeEntry
+from app.services import register_chain
 
 router = APIRouter(prefix="/api", tags=["legal"], dependencies=[Depends(require_module("legal"))])
 
@@ -102,6 +118,9 @@ def set_primo(user_id: int, body: PrimoUpdate,
 
 
 # ------------------------------------------------------- registre sécurité/santé
+#
+# ⚠️ Routes statiques (/integrity, /export.*, /seal) définies AVANT les routes
+# dynamiques /{entry_id}/… — pitfall FastAPI déjà vécu sur ce projet.
 
 
 class RegisterEntryCreate(BaseModel):
@@ -114,11 +133,25 @@ class RegisterCountersign(BaseModel):
     chef_service_name: str = Field(min_length=2, max_length=200)
 
 
+class RegisterVoid(BaseModel):
+    reason: str = Field(min_length=3, max_length=1000)
+
+
+def _org_events(db: Session, org_id: int) -> list[SafetyRegisterEvent]:
+    return (
+        db.query(SafetyRegisterEvent)
+        .filter(SafetyRegisterEvent.organization_id == org_id)
+        .order_by(SafetyRegisterEvent.id.asc())
+        .all()
+    )
+
+
 @router.get("/safety-register")
 def list_register(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     entries = db.query(SafetyRegisterEntry).filter(
         SafetyRegisterEntry.organization_id == current_user.organization_id
     ).order_by(SafetyRegisterEntry.entry_date.desc(), SafetyRegisterEntry.id.desc()).all()
+    hashes = register_chain.entry_hashes(_org_events(db, current_user.organization_id))
     return [{
         "id": e.id,
         "entry_date": e.entry_date.isoformat(),
@@ -127,11 +160,112 @@ def list_register(current_user: User = Depends(get_current_user), db: Session = 
         "status": e.status,
         "chef_service_name": e.chef_service_name or "",
         "countersigned_at": e.countersigned_at.isoformat() if e.countersigned_at else None,
+        "voided_at": e.voided_at.isoformat() if e.voided_at else None,
+        "void_reason": e.void_reason or "",
+        "voided_by_name": e.voided_by.full_name if e.voided_by else "",
         "delegate_name": e.delegate.full_name if e.delegate else "",
         "created_by_name": e.created_by.full_name if e.created_by else "",
+        "event_hash": hashes.get(e.id),
         "can_countersign": _is_bureau(current_user),
-        "can_delete": _is_bureau(current_user) or e.created_by_id == current_user.id,
+        "can_void": _is_bureau(current_user) or (e.created_by_id == current_user.id and e.status == "pending"),
     } for e in entries]
+
+
+@router.get("/safety-register/integrity")
+def register_integrity(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Vérifie chaîne + projection + sceaux. ok=false = altération détectée."""
+    org = db.get(Organization, current_user.organization_id)
+    if not org:
+        raise HTTPException(404, "Organisation non trouvée")
+    report = register_chain.verify_org(db, org.id)
+    seals = db.query(SafetyRegisterSeal).filter(
+        SafetyRegisterSeal.organization_id == org.id
+    ).order_by(SafetyRegisterSeal.id.desc()).all()
+    report["seals"] = [{
+        "id": s.id,
+        "sealed_at": s.sealed_at.isoformat() if s.sealed_at else None,
+        "event_count": s.event_count,
+        "head_signature": s.head_hash[:16],
+        "tsa_status": s.tsa_status,
+        "auto": bool(s.auto),
+    } for s in seals]
+    return report
+
+
+@router.get("/safety-register/export.csv")
+def export_register_csv(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Export CSV du registre complet (actif + annulé) — remise possible à l'ITM."""
+    entries = db.query(SafetyRegisterEntry).filter(
+        SafetyRegisterEntry.organization_id == current_user.organization_id
+    ).order_by(SafetyRegisterEntry.entry_date.asc(), SafetyRegisterEntry.id.asc()).all()
+    hashes = register_chain.entry_hashes(_org_events(db, current_user.organization_id))
+    status_labels = {"pending": "En attente", "countersigned": "Contresigné", "voided": "Annulé"}
+    buf = io.StringIO()
+    buf.write("\ufeff")  # BOM UTF-8 (Excel)
+    writer = csv.writer(buf)
+    writer.writerow([
+        "Date", "Lieu", "Constatation", "Statut", "Constaté par", "Contresigné par",
+        "Date contreseing", "Annulé le", "Motif annulation", "Empreinte (chaîne)",
+    ])
+    for e in entries:
+        writer.writerow([
+            e.entry_date.isoformat() if e.entry_date else "",
+            e.location or "",
+            e.description or "",
+            status_labels.get(e.status, e.status),
+            e.delegate.full_name if e.delegate else "",
+            e.chef_service_name or "",
+            e.countersigned_at.isoformat() if e.countersigned_at else "",
+            e.voided_at.isoformat() if e.voided_at else "",
+            e.void_reason or "",
+            hashes.get(e.id) or "",
+        ])
+    filename = f"registre_securite_{date.today().isoformat()}.csv"
+    return Response(
+        content=buf.getvalue().encode("utf-8"),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/safety-register/export.json")
+def export_register_integrity(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Dossier d'intégrité complet (registre + journal chaîné + sceaux + jetons TSA).
+
+    Ce fichier est vérifiable hors de l'application : page /verify, ou recalcul
+    manuel — event_hash = sha256(prev_hash + "|" + payload_json).
+    """
+    org = db.get(Organization, current_user.organization_id)
+    if not org:
+        raise HTTPException(404, "Organisation non trouvée")
+    report = register_chain.integrity_report(db, org)
+    payload = json.dumps(report, ensure_ascii=False, indent=2)
+    filename = f"registre_securite_integrite_{date.today().isoformat()}.json"
+    return Response(
+        content=payload.encode("utf-8"),
+        media_type="application/json; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.post("/safety-register/seal")
+def seal_register(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Fige {nombre d'événements, empreinte} et l'horodate (RFC 3161) — bureau."""
+    if not _is_bureau(current_user):
+        raise HTTPException(403, "Le scellement est réservé au bureau")
+    org = db.get(Organization, current_user.organization_id)
+    if not org:
+        raise HTTPException(404, "Organisation non trouvée")
+    seal, queued = register_chain.create_seal(db, org, actor=current_user, auto=False)
+    return {
+        "id": seal.id,
+        "sealed_at": seal.sealed_at.isoformat(),
+        "event_count": seal.event_count,
+        "head_hash": seal.head_hash,
+        "tsa_status": seal.tsa_status,
+        "tsa_url": seal.tsa_url,
+        "emails_queued": queued,
+    }
 
 
 @router.post("/safety-register")
@@ -153,6 +287,20 @@ def create_register_entry(body: RegisterEntryCreate,
         created_by_id=current_user.id,
     )
     db.add(e)
+    db.flush()
+    register_chain.append_event(
+        db,
+        org_id=current_user.organization_id,
+        entry_id=e.id,
+        action="create",
+        actor=current_user,
+        data={
+            "entry_date": d.isoformat(),
+            "location": e.location or "",
+            "description": e.description,
+            "delegate_id": current_user.id,
+        },
+    )
     db.commit()
     db.refresh(e)
     return {"id": e.id, "status": "pending"}
@@ -169,27 +317,60 @@ def countersign_entry(entry_id: int, body: RegisterCountersign,
     ).first()
     if not e:
         raise HTTPException(404, "Entrée non trouvée")
+    if e.status != "pending":
+        raise HTTPException(409, "Entrée déjà contresignée ou annulée")
+    at = register_chain.now_utc()
     e.status = "countersigned"
     e.chef_service_name = body.chef_service_name.strip()
-    e.countersigned_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    e.countersigned_at = at
+    register_chain.append_event(
+        db,
+        org_id=e.organization_id,
+        entry_id=e.id,
+        action="countersign",
+        actor=current_user,
+        data={"chef_service_name": e.chef_service_name, "countersigned_at": at.isoformat()},
+        at=at,
+    )
     db.commit()
     return {"id": e.id, "status": "countersigned"}
 
 
-@router.delete("/safety-register/{entry_id}")
-def delete_register_entry(entry_id: int,
-                          current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+@router.post("/safety-register/{entry_id}/void")
+def void_register_entry(entry_id: int, body: RegisterVoid,
+                        current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Annule une entrée (jamais de suppression) — motif obligatoire, tracé.
+
+    Bureau : à tout moment. Auteur : uniquement tant que l'entrée n'est pas
+    contresignée (une fois contresignée, seul le bureau peut annuler).
+    """
     e = db.query(SafetyRegisterEntry).filter(
         SafetyRegisterEntry.id == entry_id,
         SafetyRegisterEntry.organization_id == current_user.organization_id,
     ).first()
     if not e:
         raise HTTPException(404, "Entrée non trouvée")
-    if not (_is_bureau(current_user) or e.created_by_id == current_user.id):
-        raise HTTPException(403, "Seul l'auteur ou le bureau peut supprimer")
-    db.delete(e)
+    if e.status == "voided":
+        raise HTTPException(409, "Entrée déjà annulée")
+    is_author_pending = e.created_by_id == current_user.id and e.status == "pending"
+    if not (_is_bureau(current_user) or is_author_pending):
+        raise HTTPException(403, "Seul le bureau peut annuler une entrée contresignée")
+    at = register_chain.now_utc()
+    e.status = "voided"
+    e.void_reason = body.reason.strip()
+    e.voided_at = at
+    e.voided_by_id = current_user.id
+    register_chain.append_event(
+        db,
+        org_id=e.organization_id,
+        entry_id=e.id,
+        action="void",
+        actor=current_user,
+        data={"reason": e.void_reason, "voided_at": at.isoformat()},
+        at=at,
+    )
     db.commit()
-    return {"ok": True}
+    return {"id": e.id, "status": "voided"}
 
 
 # ----------------------------------------------------------- protection L.415-10

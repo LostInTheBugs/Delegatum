@@ -42,6 +42,7 @@ class EmailEventType(str, enum.Enum):
     consultation_created = "consultation_created"
     consultation_reminder = "consultation_reminder"
     compliance_reminder = "compliance_reminder"
+    register_seal = "register_seal"
     test = "test"
 
 

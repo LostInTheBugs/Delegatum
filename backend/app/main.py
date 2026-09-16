@@ -12,7 +12,7 @@ assert_secret_key_is_set()
 app = FastAPI(
     title="Delegatum",
     description="Outil de gestion pour les délégations du personnel au Luxembourg",
-    version="2026.09.003",
+    version="2026.09.004",
 )
 
 # CORS — allow the frontend dev server (and any explicit override).
@@ -108,6 +108,24 @@ def on_startup():
             db.close()
     except Exception as e:  # noqa: BLE001
         print(f"[compliance-scan] démarrage ignoré : {e}")
+
+    # Sceaux du registre sécurité/santé (L.414-14) — rattrapage après un
+    # redémarrage : ne scelle QUE si des événements ne sont pas encore
+    # scellés (idempotent ; le cron quotidien fait le passage régulier).
+    try:
+        import os
+        from app.core.database import SessionLocal
+        from app.services.register_chain import auto_seal_all
+
+        db = SessionLocal()
+        try:
+            seals, mails = auto_seal_all(db, base_url=os.environ.get("SD_BASE_URL", ""))
+            if seals:
+                print(f"[register-seal] {seals} sceau(x) du registre créé(s), {mails} email(s) en file")
+        finally:
+            db.close()
+    except Exception as e:  # noqa: BLE001
+        print(f"[register-seal] démarrage ignoré : {e}")
 
 
 @app.get("/api/health")

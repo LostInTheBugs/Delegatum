@@ -6,7 +6,7 @@
 
 Management tool for **staff delegations** in Luxembourg, inspired by the Labour Code (Art. L.412-1, L.414-2, L.414-3, L.415-5, L.416-1). *Formerly known as StaffDPapp.*
 
-Current version: **2026.09.003** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
+Current version: **2026.09.004** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
 
 ## Features
 
@@ -29,6 +29,7 @@ Current version: **2026.09.003** — [See GitHub releases](https://github.com/Lo
 - 📊 **Semiannual statistics (Art. L.414-3)**: workforce by sex, per semester (S1/S2), ratio visualization, history managed by the board, **PDF report export**
 - 📄 **Annual activity report**: one A4 PDF per year — workforce by sex, delegation hours (L.415-5), meetings (L.415-6), consultations (L.414-3), **designated delegates** (sécurité/santé L.414-14, égalité L.414-15) with declared hours, legal credits **and logged activities**
 - 🛡️ **Delegate activities**: designated delegates log their control tours, enquiries, trainings, actions and awareness sessions (L.414-14 / L.414-15) — visible to the whole delegation, counted in the annual report
+- 🛡️ **Safety & health register (Art. L.414-14)**: the designated delegate records findings (date, place, description, countersignature by the department head — confirmed by the board); entries are **never deleted, only voided with a reason**; actions are chained in a **tamper-evident SHA-256 journal** (live integrity banner, register re-playable from the journal); **one-click ITM dossier** (printable PDF + integrity JSON + CSV export), **RFC 3161 timestamped seals** emailed to the board, and a **public `/verify` page** — anyone (inspectorate included) can re-check an export in the browser, no account needed
 - 👥 **Mass invitations**: paste an employee list (`email;first;last`, one per line) → one invitation code per person, per-line results (created / duplicate / invalid), codes shown once with copy button — mass-invited users get plain employee accounts
 - 🗑️ **Member lifecycle**: remove former members in one click (Mon organisation) — account deactivated, login blocked, history preserved; guards prevent removing yourself or the last administrator
 - 📌 **Virtual notice board (Art. L.414-16)**: the delegation and the designated safety/health & equality delegates post communications visible to **all staff including plain employees** (read-only for them) — electronic display is explicitly legal

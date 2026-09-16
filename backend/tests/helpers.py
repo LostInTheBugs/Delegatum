@@ -42,6 +42,9 @@ def create_invitation(db, email, org_id, created_by_id, code="TESTCODE", **kwarg
 
     The plaintext `code` parameter is hashed before storage. This helper
     replaces what was previously a direct `code=` column assignment.
+
+    `is_delegue_securite_sante` / `is_delegue_egalite` sont transmis à
+    l'invitation (puis repris par le membre au join).
     """
     code_hash = hash_invitation_code(code)
     inv = Invitation(
@@ -51,6 +54,8 @@ def create_invitation(db, email, org_id, created_by_id, code="TESTCODE", **kwarg
         last_name="Person",
         delegue_status=DelegueStatus(kwargs.pop("delegue_status", "titulaire")),
         delegue_role=DelegueRole(kwargs.pop("delegue_role", "membre")),
+        is_delegue_securite_sante=kwargs.pop("is_delegue_securite_sante", False),
+        is_delegue_egalite=kwargs.pop("is_delegue_egalite", False),
         is_used=False,
         created_by_id=created_by_id,
         organization_id=org_id,

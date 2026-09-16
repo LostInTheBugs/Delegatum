@@ -109,11 +109,19 @@ def test_register_create_and_permissions(client, org_with_users):
     r = client.post(f"/api/safety-register/{eid}/countersign",
                     json={"chef_service_name": "M. Kirch"}, headers=_h(org_with_users["tom_token"]))
     assert r.status_code == 403
-    # suppression par l'auteur
+    # L'ancienne suppression définitive a été RETIRÉE (v2026.09.004) : le
+    # registre est un journal — une entrée est annulée (motif obligatoire,
+    # tracée dans la chaîne), jamais supprimée.
     r = client.delete(f"/api/safety-register/{eid}", headers=_h(org_with_users["marc_token"]))
+    assert r.status_code in (404, 405)
+    # Entrée contresignée → seul le bureau peut annuler
+    r = client.post(f"/api/safety-register/{eid}/void",
+                    json={"reason": "Constatation erronée"}, headers=_h(org_with_users["marc_token"]))
     assert r.status_code == 200
+    assert r.json()["status"] == "voided"
     entries = client.get("/api/safety-register", headers=_h(org_with_users["sophie_token"])).json()
-    assert not any(e["id"] == eid for e in entries)
+    e = next(x for x in entries if x["id"] == eid)
+    assert e["status"] == "voided" and e["void_reason"] == "Constatation erronée"
 
 
 def test_protection_members_and_candidates(client, org_with_users):
