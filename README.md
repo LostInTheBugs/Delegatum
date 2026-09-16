@@ -8,7 +8,7 @@ Management tool for **staff delegations** in Luxembourg, inspired by the Labour 
 
 🌍 Français : [README.fr.md](README.fr.md) · Deutsch : [README.de.md](README.de.md) · Lëtzebuergesch : [README.lb.md](README.lb.md)
 
-Current version: **2026.09.005** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
+Current version: **2026.09.006** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
 
 ## Features
 

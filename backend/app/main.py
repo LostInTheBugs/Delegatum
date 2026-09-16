@@ -12,7 +12,7 @@ assert_secret_key_is_set()
 app = FastAPI(
     title="Delegatum",
     description="Outil de gestion pour les délégations du personnel au Luxembourg",
-    version="2026.09.005",
+    version="2026.09.006",
 )
 
 # CORS — allow the frontend dev server (and any explicit override).

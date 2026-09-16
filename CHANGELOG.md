@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.09.006] — 2026-09-16
+
+### 🔒 HTTP security headers + Content-Security-Policy
+
+- **Security headers** on every response (`frontend/nginx.conf`): `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`.
+- **Content-Security-Policy**: `default-src 'self'` with a minimal allowlist — `connect-src https://api.github.com` (release-update banner only), `img-src`/`font-src` allowing `data:`/`blob:` for in-browser previews and exports. No CDN, no third-party runtime code.
+- Validated against a live build on the real flows — login, dashboard, safety register + **ITM dossier PDF export**, CSV export, public `/verify` with a genuine integrity dossier, share page, landing: **zero CSP violations**.
+- Operators embedding the app or adding external services should extend the allowlist in `frontend/nginx.conf` (documented in [THREAT-MODEL.md](THREAT-MODEL.md)).
+
 ## [2026.09.005] — 2026-09-16
 
 ### 🔒 Security & documentation hardening (external review follow-up)
