@@ -35,6 +35,19 @@ On first launch, create your delegation:
 Afterwards: « 🔑 I already have access » to log in. Other members join with an
 invitation code you hand out (« ✉️ Create access »).
 
+HEALTH & SAFETY REGISTER & ITM FILE
+-----------------------------------
+The health & safety delegate records findings (Art. L.414-14). The register
+is tamper-evident: every action is chained by fingerprint, and an entry is
+never deleted — it is voided, with a reason. From the « S&S register » page:
+   - « 📄 ITM file (PDF + integrity JSON) »: the printable PDF and the
+     integrity dossier to hand to the Labour and Mines Inspectorate;
+   - « 📊 CSV export »: the full list (active and voided);
+   - « 🔐 Seal now » (board): timestamps the register fingerprint and
+     prepares a copy of the seal by email.
+An integrity dossier can be re-checked at any time from « 🔍 Verify an
+integrity file » (bottom of every page).
+
 YOUR DATA
 ---------
 Everything lives in the « data » folder, next to Delegatum.exe:

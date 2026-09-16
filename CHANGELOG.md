@@ -12,6 +12,7 @@ All notable changes to this project are documented in this file.
 - **Seals + RFC 3161 timestamping**: the board can seal the register at any time (a daily job also seals automatically when new events exist). Each seal freezes {event count, chain fingerprint}, is timestamped by a public RFC 3161 authority (`openssl ts`, DigiCert/Sectigo) and emailed to the board as an external copy.
 - **Public verification page** (`/verify`): anyone — the inspectorate included — can drop the integrity JSON and get an in-browser ✅/❌ verdict (chain, register-vs-journal projection, seals); no account required, nothing is sent to the server.
 - **Migration `20260801_0018`** (idempotent): journal + seals tables, void columns; pre-existing entries are backfilled into the chain. New `/api/safety-register/...` routes (integrity, exports, seal, void); the old `DELETE` endpoint is gone.
+- **Desktop guides updated (FR/EN/DE/LB)**: the Windows and macOS user guides now cover the safety register and the ITM export (printable PDF + integrity JSON + CSV, sealing, public verification page) — the desktop zips attached to this release include the updated guides.
 
 ## [2026.09.003] — 2026-09-13
 

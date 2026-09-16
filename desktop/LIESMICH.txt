@@ -35,6 +35,20 @@ Beim ersten Start legen Sie Ihre Delegation an:
 Danach: « 🔑 Ich habe bereits Zugang » zum Anmelden. Weitere Mitglieder
 treten über einen Einladungscode bei (« ✉️ Zugang erstellen »).
 
+SICHERHEITS-/GESUNDHEITSREGISTER & ITM-DOSSIER
+----------------------------------------------
+Der Delegierte für Sicherheit und Gesundheit hält seine Feststellungen fest
+(Art. L.414-14). Das Register ist manipulationssicher: Jede Aktion wird per
+Fingerabdruck verkettet, und ein Eintrag wird nie gelöscht — er wird mit
+Begründung storniert. Auf der Seite « S&G-Register »:
+   - « 📄 ITM-Dossier (PDF + Integritäts-JSON) »: das druckbare PDF und das
+     Integritätsdossier für die Arbeits- und Bergbauinspektion;
+   - « 📊 CSV-Export »: die vollständige Liste (aktive und stornierte);
+   - « 🔐 Jetzt siegeln » (Büro): zeitstempelt den Fingerabdruck des
+     Registers und bereitet eine Kopie des Siegels per E-Mail vor.
+Ein Integritätsdossier lässt sich jederzeit über « 🔍 Integritätsdatei
+prüfen » (unten auf jeder Seite) nachprüfen.
+
 IHRE DATEN
 ----------
 Alles liegt im Ordner « data » neben Delegatum.exe:

@@ -33,6 +33,20 @@ Beim éischte Start grënnt Dir Är Vertriedung:
 Duerno: « 🔑 Ech hunn schonn en Accès » fir Iech unzemellen. Aner Memberen
 kommen iwwer en Invitatiounscode bäi (« ✉️ En Accès uleeën »).
 
+REGËSTER SÉCHERHEET/GESONDHEET & ITM-DOSSIER
+--------------------------------------------
+Den Delegéierte fir Sécherheet a Gesondheet hält seng Feststellungen fest
+(Art. L.414-14). De Regëster ass fälschungssécher: all Aktioun gëtt duerch
+en Fangersofdrock verkettegt, an en Andrag gëtt ni geläscht — en gëtt
+annuléiert, mat Grond. Op der Säit « Regëster S&G » :
+   - « 📄 ITM-Dossier (PDF + Integritéits-JSON) »: d'druckbar PDF an den
+     Integritéits-Dossier fir d'Aarbechts- a Biergbauinspektioun ;
+   - « 📊 CSV-Export »: déi komplett Lëscht (aktiv an annuléiert) ;
+   - « 🔐 Elo sigelen » (Büro): versitt de Fangersofdrock vum Regëster mat
+     engem Zäitstempel a bereet eng Kopie vum Sigel per E-Mail vir.
+En Integritéits-Dossier kann zu all Moment iwwer « 🔍 En Integritéits-Dossier
+verifizéieren » (ënnen op all Säit) nokuckt ginn.
+
 ÄR DATEN
 --------
 Alles läit am Dossier « data » niewent Delegatum.app:

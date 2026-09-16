@@ -33,6 +33,20 @@ Au premier lancement, créez votre délégation :
 Ensuite : « 🔑 J'ai déjà un accès » pour vous connecter. Les autres membres
 rejoignent avec un code d'invitation à distribuer (bouton « ✉️ Créer un accès »).
 
+REGISTRE SÉCURITÉ/SANTÉ & DOSSIER ITM
+-------------------------------------
+Le délégué sécurité/santé consigne ses constatations (art. L.414-14). Le
+registre est protégé contre les modifications : chaque action est chaînée
+par empreinte, et une entrée ne se supprime jamais — elle s'annule, avec
+motif. Depuis la page « Registre S&S » :
+   - « 📄 Dossier ITM (PDF + JSON d'intégrité) » : le PDF imprimable et le
+     dossier d'intégrité à remettre à l'Inspection du travail et des mines ;
+   - « 📊 Export CSV » : la liste complète (actives et annulées) ;
+   - « 🔐 Sceller maintenant » (bureau) : horodate l'empreinte du registre
+     et prépare une copie du sceau par email.
+Un dossier d'intégrité se revérifie à tout moment depuis « 🔍 Vérification »
+en bas de chaque page.
+
 VOS DONNÉES
 -----------
 Tout est dans le dossier « data », à côté de Delegatum.app :
