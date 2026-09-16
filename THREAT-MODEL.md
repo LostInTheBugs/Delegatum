@@ -29,7 +29,7 @@ Both shapes store the same kinds of data:
 
 ## 2. Trust boundaries
 
-- **The browser is trusted for cryptography.** PVs are encrypted/decrypted in the page. A cross-site scripting bug in the app would defeat vault confidentiality for the unlocked session — which is why the frontend is dependency-light (no embeds, no third-party runtime scripts). **Hardening recommendation:** serve HTTP security headers (nosniff / X-Frame-Options / Referrer-Policy + a tuned CSP) at the reverse proxy — not shipped by default yet, see the operator checklist (§6).
+- **The browser is trusted for cryptography.** PVs are encrypted/decrypted in the page. A cross-site scripting bug in the app would defeat vault confidentiality for the unlocked session — which is why the frontend is dependency-light (no embeds, no third-party runtime scripts). **HTTP security headers**: `X-Content-Type-Options`, `X-Frame-Options` and `Referrer-Policy` ship in `frontend/nginx.conf`; a tuned **Content-Security-Policy** is still pending a full UI test pass (it must allow `connect-src https://api.github.com` for the update banner, `blob:`/`data:` for exports — see the operator checklist §6).
 - **The server and database are NOT trusted with plaintext.** The hosting operator (who may be… the employer) can read every stored byte — except PV plaintext and the vault password, which never leave the browser.
 - **The hash chain lives in the same database the app writes.** Anyone with write access to the database can recompute the entire chain. The chain alone is *tamper-evident only against outsiders without DB access*. The real anchor is external: **RFC 3161 seals and their emailed copies** (see §4 and §5).
 - **The desktop build** moves the whole boundary onto one machine: the local user account and disk are the perimeter. `data/` (SQLite + `.secret_key` + email queue) is readable by anyone who can read that folder — use disk encryption on shared machines.
@@ -78,7 +78,7 @@ The register's integrity story is **two-layered**, and the layers have different
 - [ ] Vault & recovery key: strong vault password; recovery key stored offline (paper/safe); never emailed.
 - [ ] Updates: follow releases; apply security fixes; check `SECURITY.md` for supported versions.
 - [ ] Review login/MFA configuration for admin accounts; MFA enabled where possible.
-- [ ] Add HTTP security headers at the reverse proxy: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and a Content-Security-Policy tuned for the SPA (test the PDF export and share flows before enforcing it).
+- [ ] Add a Content-Security-Policy at the reverse proxy, tuned for the SPA: `default-src 'self'`, `img-src 'self' data: blob:`, `style-src 'self' 'unsafe-inline'`, `script-src 'self'`, `connect-src 'self' https://api.github.com` (update banner), `object-src 'none'`, `frame-ancestors 'none'` — and **test the PDF export, the share flow and the logo upload before enforcing it**.
 
 ## 7. Reporting
 
