@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, hasDomain } from '../hooks/useAuth'
 import NavBar from '../components/NavBar'
 import * as api from '../api/client'
 
@@ -170,14 +170,18 @@ export default function Organigramme() {
 
           <h3 style={{ fontSize: '.9rem', color: 'var(--blue)', marginBottom: 8 }}>Désignations spéciales (Art. L.414-2/3)</h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+            {hasDomain(organization, 'securite_sante') && (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '.7rem', color: '#a0aec0', marginBottom: 4 }}>🛡️ Sécurité/Santé</div>
               <DesignationCell field="securite_sante" label="🛡️" />
             </div>
+            )}
+            {hasDomain(organization, 'egalite') && (
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: '.7rem', color: '#a0aec0', marginBottom: 4 }}>⚖️ Égalité</div>
               <DesignationCell field="egalite" label="⚖️" />
             </div>
+            )}
           </div>
         </div>
 
@@ -244,12 +248,14 @@ export default function Organigramme() {
               {contextMenu.member.full_name}
             </div>
             <button onClick={() => { designateMember(contextMenu.member.id, 'securite_sante'); setContextMenu(null) }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '.85rem' }}>
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '.85rem' }}
+              disabled={!hasDomain(organization, 'securite_sante')}>
               🛡️ Délégué sécurité/santé
             </button>
             {contextMenu.member.delegue_status !== 'employe' && (
               <button onClick={() => { designateMember(contextMenu.member.id, 'egalite'); setContextMenu(null) }}
-                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '.85rem' }}>
+                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', fontSize: '.85rem' }}
+                disabled={!hasDomain(organization, 'egalite')}>
                 ⚖️ Délégué à l'égalité
               </button>
             )}

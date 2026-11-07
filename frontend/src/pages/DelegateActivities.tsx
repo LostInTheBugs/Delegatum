@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import NavBar from '../components/NavBar'
 import Footer from '../components/Footer'
-import { useAuth } from '../hooks/useAuth'
+import { useAuth, hasDomain } from '../hooks/useAuth'
 import { useT } from '../i18n/I18nContext'
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -32,7 +32,7 @@ interface ActivityRow {
 
 export default function DelegateActivities() {
   const { t } = useT()
-  const { user } = useAuth()
+  const { user, organization } = useAuth()
 
   const [rows, setRows] = useState<ActivityRow[]>([])
   const [members, setMembers] = useState<Array<{ id: number; first_name: string; last_name: string; is_delegue_securite_sante: boolean; is_delegue_egalite: boolean }>>([])
@@ -79,9 +79,9 @@ export default function DelegateActivities() {
 
   // Domaines proposés dans le formulaire
   const formDomains = useMemo(() => {
-    if (isBureau) return ['securite_sante', 'egalite']
+    if (isBureau) return ['securite_sante', 'egalite'].filter(d => hasDomain(organization, d))
     return myDesignations
-  }, [isBureau, myDesignations])
+  }, [isBureau, myDesignations, organization])
 
   useEffect(() => {
     if (formDomains.length > 0 && !formDomains.includes(formDomain)) {
