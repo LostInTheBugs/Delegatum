@@ -461,7 +461,6 @@ def test_alembic_migration_chain(db, org_with_users, capfd):
     os.close(fd)
 
     parent = Path(__file__).resolve().parent.parent
-    alembic_bin = str(parent / ".venv" / "bin" / "alembic")
     try:
         SD = f"sqlite:///{path}"
         env = os.environ.copy()
@@ -469,21 +468,21 @@ def test_alembic_migration_chain(db, org_with_users, capfd):
 
         # Upgrade à head (crée toutes les tables + 0019)
         result = subprocess.run(
-            [alembic_bin, "upgrade", "head"],
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
             cwd=str(parent), env=env, capture_output=True, text=True,
         )
         assert result.returncode == 0, f"upgrade head failed: {result.stderr}"
 
         # Downgrade -1 (de 0019 à 0018)
         result = subprocess.run(
-            [alembic_bin, "downgrade", "-1"],
+            [sys.executable, "-m", "alembic", "downgrade", "-1"],
             cwd=str(parent), env=env, capture_output=True, text=True,
         )
         assert result.returncode == 0, f"downgrade -1 failed: {result.stderr}"
 
         # Up head à nouveau
         result = subprocess.run(
-            [alembic_bin, "upgrade", "head"],
+            [sys.executable, "-m", "alembic", "upgrade", "head"],
             cwd=str(parent), env=env, capture_output=True, text=True,
         )
         assert result.returncode == 0, f"upgrade head again failed: {result.stderr}"

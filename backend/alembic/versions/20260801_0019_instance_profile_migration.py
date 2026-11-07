@@ -1,7 +1,7 @@
 """ajoute meetings + safety_register aux modules org existants
 
 Revision ID: 20260801_0019_instance_profile_migration
-Revises: 20260801_0018_safety_register_integrity
+Revises: 20260801_0018
 Create Date: 2026-11-06
 
 Lorsqu'une instance est déployée en profil restreint (sst ou egalite),
