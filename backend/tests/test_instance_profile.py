@@ -29,10 +29,10 @@ def profile(monkeypatch):
 # ── 1. Profil invalide ─────────────────────────────────────────────
 
 
-def test_invalid_profile_refused(monkeypatch):
+def test_invalid_profile_refused(profile):
     from app.core.config import assert_instance_profile_valid
 
-    monkeypatch.setenv("SD_INSTANCE_PROFILE", "bizarro")
+    profile("bizarro")
     with pytest.raises(RuntimeError, match="SD_INSTANCE_PROFILE"):
         assert_instance_profile_valid()
 

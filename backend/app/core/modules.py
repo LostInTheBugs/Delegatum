@@ -58,7 +58,6 @@ def _parse_profile(raw: str) -> str:
 def instance_modules() -> set[str]:
     """Modules disponibles pour le profil d'instance courant."""
     from app.core.config import get_settings
-    get_settings.cache_clear()  # toujours lire la valeur à jour
     raw = get_settings().instance_profile
     key = _parse_profile(raw)
     result = PROFILE_MODULES.get(key)
@@ -73,7 +72,6 @@ def instance_modules() -> set[str]:
 def instance_domains() -> set[str]:
     """Domaines de délégués disponibles pour le profil d'instance courant."""
     from app.core.config import get_settings
-    get_settings.cache_clear()  # toujours lire la valeur à jour
     raw = get_settings().instance_profile
     key = _parse_profile(raw)
     result = PROFILE_DOMAINS.get(key)
