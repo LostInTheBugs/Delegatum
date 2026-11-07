@@ -14,14 +14,15 @@ All notable changes to this project are documented in this file.
 - **Navigation frontend** : la barre de navigation, le tableau de bord et la page Organisation filtrent dynamiquement les entrées selon le profil d'instance.
 - **i18n** : traductions ajoutées pour les libellés du profil d'instance dans les 5 langues (fr, en, de, pt, lb).
 
-## [2026.11.002-c3] — 2026-11-07
+## [2026.11.002-c4] — 2026-11-07
 
 - **correctif API** : `GET /api/admin/updates` renvoie désormais une section `applier` lue depuis `update-applier.json`, avec les clés `installed`, `seen_at`, `applied`, `applied_at`, `result`, `running`, `running_at` (aligné sur Cohors).
 - **correctif bug** : `_upd_state()` lisait `seen_at` depuis le fichier de demande au lieu de `update-applier.json` — corrigé.
 - **tolérance frontend** : la page Updates utilise `?.` sur `state.applier` pour éviter le crash si un backend plus ancien ne renvoie pas `applier`.
 - **types TypeScript** : `UpdateApplier` aligné sur le schéma réel (nombres pour les timestamps, `string` pour `applied`/`result`/`running`).
+- **correctif build** : `formatDate` accepte désormais `number | string | null` pour les timestamps applier.
 
-## [2026.11.002-c2] — 2026-11-07
+## [2026.11.002-c3] — 2026-11-07
 
 - **correctif de version** : l'applicateur de mise à jour de bureau accepte désormais les versions correctives `-cN` sur Windows et macOS ; méta-donnée de version synchronisée dans `index.html`.
 
