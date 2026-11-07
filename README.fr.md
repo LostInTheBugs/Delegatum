@@ -19,6 +19,18 @@ Outil de gestion pour les **délégations du personnel** au Luxembourg (Code du 
 ## Configuration
 
 - `SD_INSTANCE_PROFILE` : profil d'instance — restreint les modules disponibles (`dp` = tous, `sst`, `egalite`, ou `egalite,sst`). Défaut : `dp`.
+- `SD_INSTANCE_ADMIN_EMAILS` : liste d'adresses e-mail séparées par des virgules autorisées comme administrateurs d'instance (voir Mises à jour) ; laissez vide pour le fallback admin mono-organisation.
+- `SD_UPDATE_NO_BUILD` : `1` sur les petits serveurs pour refuser la reconstruction des images Docker — déployez des images construites ailleurs. Défaut : `0`.
+- `SD_UPDATE_LOOP` : `0` pour désactiver la boucle de vérification en arrière-plan (le bouton 🔎 Vérifier de l'admin fonctionne toujours). Défaut : `1`.
+
+## Mises à jour
+
+Le module d'auto-mise-à jour permet au serveur d'appliquer automatiquement les nouvelles versions : le service vérifie les releases GitHub à la cadence configurée, dépose une demande de mise-à-jour, et un service systemd sur l'hôte tire le tarball, reconstruit les images, lance Alembic et redémarre les conteneurs. L'application ne touche **jamais** à Docker — une barrière de sécurité volontaire.
+
+- **Accès** : seuls les administrateurs d'instance peuvent demander/appliquer (liste `SD_INSTANCE_ADMIN_EMAILS` ou admin mono-organisation).
+- **Sauvegarde** : avant chaque mise-à-jour, copie automatique de la base `.db` en `*.db.pre-<version>` ; 3 dernières conservées.
+- **Garde no-build** : `SD_UPDATE_NO_BUILD=1` refuse la construction d'images sur petits serveurs.
+- **Installation** : copiez `deploy/delegatum-update.service` et `.timer` dans `/etc/systemd/system/`, éditez `WorkingDirectory` et `User`, puis `systemctl enable --now delegatum-update.timer`.
 
 ## Documentation
 

@@ -8,7 +8,7 @@ Management tool for **staff delegations** in Luxembourg, inspired by the Labour 
 
 🌍 Français : [README.fr.md](README.fr.md) · Deutsch : [README.de.md](README.de.md) · Lëtzebuergesch : [README.lb.md](README.lb.md)
 
-Current version: **2026.11.001** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
+Current version: **2026.11.002** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
 
 ## Features
 
@@ -113,6 +113,9 @@ Copy `.env.example` to `.env` and adjust the variables:
 | `SD_DATABASE_URL` | Database URL (overridable — SQLite default, PostgreSQL supported) | `sqlite:///./data/staff_delegation.db` |
 | `SD_INSTANCE_PROFILE` | Instance profile — restricts available modules | `dp` (all modules) |
 | `SD_ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token expiration | `1440` (24h) |
+| `SD_INSTANCE_ADMIN_EMAILS` | Comma-separated list of email addresses authorised as instance administrators (see Updates below); leave empty for single-org admin fallback | — |
+| `SD_UPDATE_NO_BUILD` | `1` on small servers to refuse building images on the host — deploy images built elsewhere | `0` (build allowed) |
+| `SD_UPDATE_LOOP` | `0` to disable the background update-check loop (the admin panel's 🔎 Check still works) | `1` (loop active) |
 
 The port can be overridden via the `SD_PORT` environment variable in all contexts (Docker, local development). All configuration files reference port 8005 by default.
 
@@ -135,6 +138,50 @@ Ready-to-adapt templates ship with the repository — processing register (Art. 
 - **Backend**: Python 3.11, FastAPI, SQLAlchemy, PyJWT, pyotp
 - **Database**: SQLite (development), PostgreSQL (production recommended)
 - **Reverse proxy**: Traefik + Let's Encrypt (HTTPS)
+
+## Updates
+
+Self-update for delegated administration — the app checks for new versions and, if one is available, deposits a request file; a host-side systemd service (timer + script) applies the update by pulling the release tarball, rsyncing the code, rebuilding Docker images, and running Alembic migrations. The app container **never** touches Docker — a deliberate security boundary.
+
+### Access control
+
+Only an **instance administrator** can request or apply updates. Instance admin is determined by:
+
+1. **`SD_INSTANCE_ADMIN_EMAILS`** (comma-separated list) — if set, only listed emails are authorised.
+2. **Fallback** — if `SD_INSTANCE_ADMIN_EMAILS` is empty, the first admin of a **single-organisation** instance is authorised. Multi-org instances without `SD_INSTANCE_ADMIN_EMAILS` block update access (403).
+
+### Configuration
+
+Settings are stored in the database, accessible from **Settings → Administration → Updates** in the app:
+
+- **Check cadence** (6 h / 12 h / 24 h / 2 days / weekly; 1 h default) — the background loop queries GitHub at this interval.
+- **Auto-apply** — off by default; when on, the app deposits an apply request as soon as a new version is detected (never during a running job).
+- **🔎 Check now** — one-shot check regardless of cadence.
+
+### Small-server guard (`SD_UPDATE_NO_BUILD=1`)
+
+On small hosts that cannot build Docker images, set `SD_UPDATE_NO_BUILD=1` in `.env` or as an environment variable. The updater then refuses to build — the host must deploy pre-built images (e.g. via CI) and the updater will skip the `--build` step.
+
+### Automatic database backup
+
+Before every update, the updater backs up every `.db` file in `DATA_DIR` to `*.db.pre-<version>`. The **three most recent** backups per database are kept; older ones are purged. To roll back, rename the `.pre-<version>` file back to the original name and restart.
+
+### Host-side updater installation
+
+Install the systemd timer on the host that runs the Docker deployment:
+
+```sh
+sudo cp deploy/delegatum-update.service /etc/systemd/system/
+sudo cp deploy/delegatum-update.timer /etc/systemd/system/
+# ⚠️ Edit User and WorkingDirectory before enabling — they MUST match your deployment
+# Correct: WorkingDirectory=/opt/delegatum  (repository root where deploy/ sits)
+# Wrong:   WorkingDirectory=/opt/delegatum/app
+sudo systemctl daemon-reload
+sudo systemctl enable --now delegatum-update.timer
+python3 deploy/apply-update.py --dry-run   # sanity check — changes nothing
+```
+
+The timer checks every 5 minutes whether the app has deposited an update request; if none is pending it does nothing. Without the timer, the 🔎 Check button in the admin panel still works — the request simply waits for manual application.
 
 ## Upgrade
 

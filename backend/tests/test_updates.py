@@ -185,7 +185,7 @@ def test_check_update_sets_state(monkeypatch, client, sophie_token):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["current"] == "2026.11.001"
+    assert data["current"] == "2026.11.002"
     assert data["latest"]["version"] == "2026.11.002"
     assert data["available"] is True
 

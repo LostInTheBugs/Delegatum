@@ -14,6 +14,18 @@ All notable changes to this project are documented in this file.
 - **Navigation frontend** : la barre de navigation, le tableau de bord et la page Organisation filtrent dynamiquement les entrées selon le profil d'instance.
 - **i18n** : traductions ajoutées pour les libellés du profil d'instance dans les 5 langues (fr, en, de, pt, lb).
 
+## [2026.11.002] — 2026-11-07
+
+### 🔄 Self-update — vérification, demande, application et garde-fous
+
+- **Service de vérification en arrière-plan** (`backend/app/services/updates.py`) : le service consulte les releases GitHub à la cadence configurée ; il ne déclenche **jamais** de mise à jour automatiquement — il dépose un fichier de demande (`update-request.json`) que le service hôte applique.
+- **Page d'administration** (`backend/app/routes/updates.py` + `frontend/src/pages/Updates.tsx`) : paramétrage de la cadence, activation de l'auto-appliquer, demande et annulation manuelles ; le bouton 🔎 Check now force une vérification immédiate.
+- **Programme hôte + timer** (`deploy/apply-update.py`, `deploy/delegatum-update.service`, `deploy/delegatum-update.timer`) : le service hôte tire la release tarball depuis GitHub, rsync les sources, reconstruit les images Docker, lance Alembic et redémarre les conteneurs. Le timer vérifie toutes les 5 minutes la présence d'une demande.
+- **Droits d'accès** (`require_instance_admin` dans `backend/app/core/deps.py`) : seuls les administrateurs d'instance peuvent demander/appliquer (liste `SD_INSTANCE_ADMIN_EMAILS` ou admin mono-organisation).
+- **Garde no-build** (`SD_UPDATE_NO_BUILD=1`) : refus de reconstruction des images sur petits serveurs ; les images doivent être déployées pré-construites.
+- **Sauvegarde automatique de la base** : avant chaque mise à jour, copie de `.db` en `*.db.pre-<version>` ; conservation des 3 plus récentes par base.
+- **Migration Alembic `20260801_0020_self_update_config`** : création de la table `update_config` pour stocker cadence et auto-apply par organisation.
+
 ## [2026.09.006] — 2026-09-16
 
 ### 🔒 HTTP security headers + Content-Security-Policy
