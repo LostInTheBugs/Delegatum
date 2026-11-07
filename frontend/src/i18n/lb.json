@@ -545,5 +545,13 @@
   "templates.egalite.p6": "Sensibiliséierung vum Personal — jäerlech getrennt Abberuffung no Geschlecht (Art. L.414-15)",
   "templates.egalite.p7": "Formatioun vum Delegéierte fir Gläichheet: 2 Hallefdeeg pro Joer (Art. L.415-9)",
   "templates.egalite.p8": "Nächst Aktiounen am Sënn vun der Gläichheet"
+,
+  "modules.meetings": "📅 Versammlungen, Protokoller an Archiv",
+  "modules.safety_register": "🛡️ Sécherheets- a Gesondheetsregister",
+  "modules.legal": "🎓 Formatioun / Schutz",
+  "org.instance_profile": "Instanzprofil",
+  "profile.sst": "Delegéiert(e) fir Sécherheet a Gesondheet",
+  "profile.egalite": "Delegéiert(e) fir Gläichheet",
+  "profile.egalite,sst": "Delegéiert(e) Sécherheet-Gesondheet a Gläichheet"
 
 }

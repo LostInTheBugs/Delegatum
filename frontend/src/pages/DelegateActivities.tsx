@@ -80,7 +80,7 @@ export default function DelegateActivities() {
   // Domaines proposés dans le formulaire
   const formDomains = useMemo(() => {
     if (isBureau) return ['securite_sante', 'egalite'].filter(d => hasDomain(organization, d))
-    return myDesignations
+    return myDesignations.filter(d => hasDomain(organization, d))
   }, [isBureau, myDesignations, organization])
 
   useEffect(() => {

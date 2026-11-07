@@ -31,6 +31,7 @@ interface OrganizationResponse {
   contact_email: string | null
   contact_phone: string | null
   contact_hours: string | null
+  profile: string | null
 }
 
 interface DashboardResponse {
@@ -410,6 +411,17 @@ export function updateModules(modules: string[]): Promise<OrganizationResponse> 
   return request('/organization/modules', { method: 'PUT', body: JSON.stringify({ modules }) })
 }
 
+export interface ModulesResponse {
+  modules: string[]
+  available: string[]
+  profile: string
+  domains: string[]
+}
+
+export function getModules(): Promise<ModulesResponse> {
+  return request('/organization/modules')
+}
+
 export function updateLogo(logo_data: string): Promise<OrganizationResponse> {
   return request('/organization/logo', { method: 'PUT', body: JSON.stringify({ logo_data }) })
 }
@@ -430,6 +442,7 @@ export const ALL_MODULES = [
   'consultations',
   'workforce_stats',
   'delegate_activities',
+  'safety_register',
   'legal',
   'contact',
 ] as const

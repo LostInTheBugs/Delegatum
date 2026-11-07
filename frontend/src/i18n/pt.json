@@ -545,5 +545,13 @@
   "templates.egalite.p6": "Sensibilização do pessoal — convocação anual separada por sexo (Art. L.414-15)",
   "templates.egalite.p7": "Formação do delegado para a igualdade: 2 meios-dias por ano (Art. L.415-9)",
   "templates.egalite.p8": "Próximas ações a favor da igualdade"
+,
+  "modules.meetings": "📅 Reuniões, Atas e arquivo",
+  "modules.safety_register": "🛡️ Registo de saúde e segurança",
+  "modules.legal": "🎓 Formação / Proteção",
+  "org.instance_profile": "Perfil da instância",
+  "profile.sst": "Delegado(a) de santé e segurança",
+  "profile.egalite": "Delegado(a) da igualdade",
+  "profile.egalite,sst": "Delegados(as) de santé-segurança e igualdade"
 
 }
