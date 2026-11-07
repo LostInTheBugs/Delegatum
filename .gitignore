@@ -1,4 +1,6 @@
 __pycache__/
+deploy/__pycache__/
+deploy/update.log
 *.py[cod]
 *.db
 .env
@@ -24,3 +26,4 @@ build/
 # Claude AI analysis files (never versioned)
 claude/
 backend/claude/
+frontend/claude/

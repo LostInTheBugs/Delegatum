@@ -438,7 +438,7 @@ def test_dashboard_egalite_sst_domains(client, org_with_users, profile):
 
 
 def test_alembic_single_head():
-    """Seule head Alembic = 0019_instance_profile_migration."""
+    """Une seule head Alembic ; l'ancienne 0019 figure dans l'historique."""
     from alembic.config import Config
     from alembic.script import ScriptDirectory
     from pathlib import Path
@@ -448,7 +448,8 @@ def test_alembic_single_head():
     script = ScriptDirectory.from_config(alembic_cfg)
     heads = script.get_heads()
     assert len(heads) == 1
-    assert heads[0] == "20260801_0019_instance_profile_migration"
+    all_revs = {r.revision for r in script.iterate_revisions(heads[0], "base")}
+    assert "20260801_0019_instance_profile_migration" in all_revs
 
 
 def test_alembic_migration_chain(db, org_with_users, capfd):

@@ -786,3 +786,76 @@ export type { VaultStatusResponse, VaultKeyResponse, VaultEnvelope }
 
 export { b64Encode, b64Decode }
 export type { Section, MinuteResponse, DirectionPreview }
+
+// ── Self-Update (admin) ──────────────────────────────────────────────
+
+export interface UpdateAllowedResponse {
+  allowed: boolean
+}
+
+export interface UpdateLatest {
+  version: string
+  published_at: string
+  url: string
+  body: string
+}
+
+export interface UpdateCheck {
+  last_at: string | null
+  error: string | null
+}
+
+export interface UpdateRequest {
+  version: string
+  requested_at: string
+}
+
+export interface UpdateApplier {
+  installed: boolean
+  seen_at: string | null
+  applied: boolean
+  applied_at: string | null
+  result: string | null
+  running: boolean
+  running_at: string | null
+}
+
+export interface UpdateSettings {
+  upd_check_h: number
+  upd_apply_auto: boolean
+}
+
+export interface UpdateStateResponse {
+  current: string
+  latest: UpdateLatest
+  available: boolean
+  check: UpdateCheck
+  request: UpdateRequest | null
+  applier: UpdateApplier
+  settings: UpdateSettings
+}
+
+export interface UpdateSavePayload {
+  upd_check_h: number
+  upd_apply_auto: boolean
+}
+
+export function getUpdateAllowed(): Promise<UpdateAllowedResponse> {
+  return request('/admin/updates/allowed')
+}
+
+export function getUpdateState(): Promise<UpdateStateResponse> {
+  return request('/admin/updates')
+}
+
+export function checkUpdate(): Promise<UpdateCheck> {
+  return request('/admin/updates/check', { method: 'POST' })
+}
+
+export function applyUpdate(): Promise<void> {
+  return request('/admin/updates/apply', { method: 'POST' })
+}
+
+export function saveUpdateSettings(data: UpdateSavePayload): Promise<UpdateSettings> {
+  return request('/admin/updates/settings', { method: 'PUT', body: JSON.stringify(data) })
+}

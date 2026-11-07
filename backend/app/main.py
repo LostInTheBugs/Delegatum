@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import assert_secret_key_is_set, assert_instance_profile_valid
 from app.core.database import init_db
-from app.routes import auth, organization, meeting, time_entry, minute, vault, email, share, consultation, workforce_stat, annual_report, delegate_activity, notice, compliance, election, legal
+from app.core.version import VERSION
+from app.routes import auth, organization, meeting, time_entry, minute, vault, email, share, consultation, workforce_stat, annual_report, delegate_activity, notice, compliance, election, legal  # noqa: F401
+from app.routes.updates import router as updates_router, allowed_router as updates_allowed_router
 
 # Garde de sécurité : refuse le démarrage si SD_SECRET_KEY est absente,
 # trop courte ou égale à une valeur d'exemple (jetons JWT forgeables).
@@ -15,7 +17,7 @@ assert_instance_profile_valid()
 app = FastAPI(
     title="Delegatum",
     description="Outil de gestion pour les délégations du personnel au Luxembourg",
-    version="2026.11.001",
+    version=VERSION,
 )
 
 # CORS — allow the frontend dev server (and any explicit override).
@@ -58,11 +60,23 @@ app.include_router(notice.router)
 app.include_router(compliance.router)
 app.include_router(election.router)
 app.include_router(legal.router)
+app.include_router(updates_router)
+app.include_router(updates_allowed_router)
 
 
 @app.on_event("startup")
 def on_startup():
     init_db()
+    # Boucle de vérification de mise à jour (optionnelle)
+    try:
+        import os
+        from app.core.config import get_settings
+        if get_settings().update_loop:
+            from app.services.updates import _update_loop
+            import threading
+            threading.Thread(target=_update_loop, daemon=True).start()
+    except Exception as e:  # noqa: BLE001
+        print(f"[update-loop] démarrage ignoré : {e}")
     # Rappels de réunion dus (idempotent — ne duplique rien)
     try:
         from app.core.database import SessionLocal

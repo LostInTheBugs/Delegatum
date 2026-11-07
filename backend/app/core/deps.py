@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.modules import enabled_modules_of
 from app.core.security import decode_access_token
-from app.models import User
+from app.models import User, UserRole
 
 security = HTTPBearer()
 
@@ -69,4 +69,45 @@ def get_current_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token révoqué")
     if payload.get("ver", 0) != (user.token_version or 0):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token révoqué")
+    return user
+
+
+def require_instance_admin(
+    user: User = Depends(get_current_user), db: Session = Depends(get_db),
+) -> User:
+    """Exige un administrateur d'instance.
+
+    Règles (dans l'ordre) :
+    1. Si SD_INSTANCE_ADMIN_EMAILS est non vide → l'email de l'utilisateur
+       doit y figurer (liste séparée par des virgules).
+    2. Sinon → l'utilisateur doit être admin ET l'instance ne doit contenir
+       qu'une seule organisation.
+    3. Sinon → 403.
+    """
+    from app.core.config import get_settings
+    from app.models.organization import Organization
+
+    settings = get_settings()
+    admin_emails = [e.strip() for e in (settings.instance_admin_emails or "").split(",") if e.strip()]
+
+    if admin_emails:
+        if user.email not in admin_emails:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrateur d'instance requis",
+            )
+        return user
+
+    # Fallback : admin mono-org uniquement
+    if user.role != UserRole.admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrateur d'instance requis",
+        )
+    org_count = db.query(Organization).count()
+    if org_count != 1:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrateur d'instance requis",
+        )
     return user

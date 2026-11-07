@@ -22,6 +22,7 @@ import VerifyRegister from './pages/VerifyRegister'
 import Consultations from './pages/Consultations'
 import WorkforceStats from './pages/WorkforceStats'
 import ContactPage from './pages/ContactPage'
+import UpdatesPage from './pages/Updates'
 import ProtectedRoute from './components/ProtectedRoute'
 import ModuleRoute from './components/ModuleRoute'
 
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/consultations" element={<ModuleRoute module="consultations"><Consultations /></ModuleRoute>} />
       <Route path="/workforce-stats" element={<ModuleRoute module="workforce_stats"><WorkforceStats /></ModuleRoute>} />
       <Route path="/contact" element={<ModuleRoute module="contact"><ContactPage /></ModuleRoute>} />
+      <Route path="/admin/updates" element={<ProtectedRoute><UpdatesPage /></ProtectedRoute>} />
       <Route path="/p/:token" element={<ShareView />} />
       <Route path="/verify" element={<VerifyRegister />} />
       <Route path="*" element={<Navigate to="/" replace />} />
