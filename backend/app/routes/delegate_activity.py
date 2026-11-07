@@ -95,6 +95,11 @@ def create_activity(
     ).first()
     if not target:
         raise HTTPException(status_code=404, detail="Membre introuvable dans la délégation")
+    # Vérifier que le domaine est dans le profil d'instance
+    from app.core.modules import instance_domains
+    domains = instance_domains()
+    if body.domain not in domains:
+        raise HTTPException(status_code=400, detail=f"Le domaine '{body.domain}' est hors profil d'instance")
     if not _is_designated(target, body.domain):
         raise HTTPException(status_code=400, detail="Ce membre n'est pas délégué désigné pour ce domaine")
 

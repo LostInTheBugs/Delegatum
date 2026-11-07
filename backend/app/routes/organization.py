@@ -184,6 +184,14 @@ def create_invitation(
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
 
+    # Vérifier que les champs désignés sont dans le profil d'instance
+    from app.core.modules import instance_domains
+    domains = instance_domains()
+    if body.is_delegue_securite_sante and "securite_sante" not in domains:
+        raise HTTPException(status_code=400, detail="La désignation sécurité-santé est hors profil d'instance")
+    if body.is_delegue_egalite and "egalite" not in domains:
+        raise HTTPException(status_code=400, detail="La désignation égalité est hors profil d'instance")
+
     _validate_invitation_fields(body.delegue_status, body.delegue_role,
                                 body.is_delegue_securite_sante, body.is_delegue_egalite)
 
@@ -487,10 +495,17 @@ class ModulesUpdate(BaseModel):
 
 @router.get("/organization/modules")
 def get_modules(current_user: User = Depends(get_current_user)):
-    """Liste des modules actifs pour l'organisation (tout membre)."""
-    from app.core.modules import enabled_modules_of, ALL_MODULES
+    """Liste des modules actifs et disponibles pour l'organisation (tout membre)."""
+    from app.core.modules import ALL_MODULES, enabled_modules_of, instance_modules, instance_domains
+    from app.core.config import get_settings
     active = enabled_modules_of(current_user.organization.enabled_modules)
-    return {"modules": [m for m in ALL_MODULES if m in active]}
+    settings = get_settings()
+    return {
+        "modules": [m for m in ALL_MODULES if m in active],
+        "available": list(instance_modules()),
+        "profile": settings.instance_profile,
+        "domains": list(instance_domains()),
+    }
 
 
 @router.put("/organization/modules", response_model=OrganizationResponse)
@@ -499,13 +514,21 @@ def update_modules(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Active/désactive les modules (admin). Modules inconnus → 422."""
-    from app.core.modules import ALL_MODULES
+    """Active/désactive les modules (admin). Modules inconnus → 422.
+    Modules hors profil d'instance → 400."""
+    from app.core.modules import ALL_MODULES, instance_modules
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
     unknown = [m for m in body.modules if m not in ALL_MODULES]
     if unknown:
         raise HTTPException(status_code=422, detail=f"Modules inconnus : {', '.join(unknown)}")
+    avail = instance_modules()
+    forbidden = [m for m in body.modules if m not in avail]
+    if forbidden:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Module{'s' if len(forbidden)>1 else ''} non disponible{'s' if len(forbidden)>1 else ''} pour ce profil d'instance : {', '.join(forbidden)}",
+        )
     org = current_user.organization
     org.enabled_modules = json.dumps(body.modules)
     db.commit()
@@ -669,6 +692,13 @@ def designate_member(
     target = db.query(User).filter(User.id == user_id, User.organization_id == current_user.organization_id).first()
     if not target:
         raise HTTPException(status_code=404)
+    # Vérifier que la désignation est dans le profil d'instance
+    if value:
+        from app.core.modules import instance_domains
+        domains = instance_domains()
+        domain_key = "securite_sante" if field == "securite_sante" else "egalite"
+        if domain_key not in domains:
+            raise HTTPException(status_code=400, detail=f"La désignation {field} est hors profil d'instance")
     # Si on désigne, on peut aussi désigner le membre précédent
     if value:
         if field == "securite_sante":

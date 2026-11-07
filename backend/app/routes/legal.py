@@ -146,7 +146,7 @@ def _org_events(db: Session, org_id: int) -> list[SafetyRegisterEvent]:
     )
 
 
-@router.get("/safety-register")
+@router.get("/safety-register", dependencies=[Depends(require_module("safety_register"))])
 def list_register(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     entries = db.query(SafetyRegisterEntry).filter(
         SafetyRegisterEntry.organization_id == current_user.organization_id
@@ -171,7 +171,7 @@ def list_register(current_user: User = Depends(get_current_user), db: Session = 
     } for e in entries]
 
 
-@router.get("/safety-register/integrity")
+@router.get("/safety-register/integrity", dependencies=[Depends(require_module("safety_register"))])
 def register_integrity(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Vérifie chaîne + projection + sceaux. ok=false = altération détectée."""
     org = db.get(Organization, current_user.organization_id)
@@ -192,7 +192,7 @@ def register_integrity(current_user: User = Depends(get_current_user), db: Sessi
     return report
 
 
-@router.get("/safety-register/export.csv")
+@router.get("/safety-register/export.csv", dependencies=[Depends(require_module("safety_register"))])
 def export_register_csv(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Export CSV du registre complet (actif + annulé) — remise possible à l'ITM."""
     entries = db.query(SafetyRegisterEntry).filter(
@@ -228,7 +228,7 @@ def export_register_csv(current_user: User = Depends(get_current_user), db: Sess
     )
 
 
-@router.get("/safety-register/export.json")
+@router.get("/safety-register/export.json", dependencies=[Depends(require_module("safety_register"))])
 def export_register_integrity(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Dossier d'intégrité complet (registre + journal chaîné + sceaux + jetons TSA).
 
@@ -248,7 +248,7 @@ def export_register_integrity(current_user: User = Depends(get_current_user), db
     )
 
 
-@router.post("/safety-register/seal")
+@router.post("/safety-register/seal", dependencies=[Depends(require_module("safety_register"))])
 def seal_register(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Fige {nombre d'événements, empreinte} et l'horodate (RFC 3161) — bureau."""
     if not _is_bureau(current_user):
@@ -268,7 +268,7 @@ def seal_register(current_user: User = Depends(get_current_user), db: Session = 
     }
 
 
-@router.post("/safety-register")
+@router.post("/safety-register", dependencies=[Depends(require_module("safety_register"))])
 def create_register_entry(body: RegisterEntryCreate,
                           current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not _is_secu_or_bureau(current_user):
@@ -306,7 +306,7 @@ def create_register_entry(body: RegisterEntryCreate,
     return {"id": e.id, "status": "pending"}
 
 
-@router.post("/safety-register/{entry_id}/countersign")
+@router.post("/safety-register/{entry_id}/countersign", dependencies=[Depends(require_module("safety_register"))])
 def countersign_entry(entry_id: int, body: RegisterCountersign,
                       current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not _is_bureau(current_user):
@@ -336,7 +336,7 @@ def countersign_entry(entry_id: int, body: RegisterCountersign,
     return {"id": e.id, "status": "countersigned"}
 
 
-@router.post("/safety-register/{entry_id}/void")
+@router.post("/safety-register/{entry_id}/void", dependencies=[Depends(require_module("safety_register"))])
 def void_register_entry(entry_id: int, body: RegisterVoid,
                         current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Annule une entrée (jamais de suppression) — motif obligatoire, tracé.
