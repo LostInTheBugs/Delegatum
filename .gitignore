@@ -26,3 +26,4 @@ build/
 # Claude AI analysis files (never versioned)
 claude/
 backend/claude/
+frontend/claude/

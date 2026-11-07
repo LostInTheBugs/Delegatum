@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useT } from '../i18n/I18nContext'
 import NavBar from '../components/NavBar'
 import * as api from '../api/client'
@@ -19,6 +20,7 @@ function formatDate(d: string | null): string {
 
 export default function UpdatesPage() {
   const { t } = useT()
+  const navigate = useNavigate()
   const [state, setState] = useState<api.UpdateStateResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -26,7 +28,13 @@ export default function UpdatesPage() {
   const [checkLoading, setCheckLoading] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
   const [applyError, setApplyError] = useState<string | null>(null)
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // ── Access guard ──
+  useEffect(() => {
+    api.getUpdateAllowed().then(res => {
+      if (!res.allowed) navigate('/dashboard')
+    }).catch(() => navigate('/dashboard'))
+  }, [navigate])
 
   const fetchState = useCallback(async () => {
     try {
@@ -39,17 +47,18 @@ export default function UpdatesPage() {
     }
   }, [])
 
+  // ── Initial fetch ──
   useEffect(() => {
     fetchState()
-    // Auto-refresh every 15s while request is pending or applier is running
-    const needsRefresh = state && (state.request !== null || state.applier.running)
-    if (needsRefresh) {
-      intervalRef.current = setInterval(fetchState, 15000)
-    }
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current)
-    }
-  }, [fetchState, state])
+  }, [fetchState])
+
+  // ── Polling while update is pending ──
+  useEffect(() => {
+    const pending = state && (state.request !== null || state.applier.running)
+    if (!pending) return
+    const id = setInterval(fetchState, 15000)
+    return () => clearInterval(id)
+  }, [state, fetchState])
 
   const handleCheck = async () => {
     setCheckLoading(true)
