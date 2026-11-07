@@ -1,0 +1,16 @@
+# Delegatum — applique une mise à jour demandée depuis l'administration du site.
+# Adapter User / WorkingDirectory à l'installation (voir README, section Updates), puis :
+#   sudo cp deploy/delegatum-update.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now delegatum-update.timer
+[Unit]
+Description=Delegatum — mise à jour demandée depuis le site
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=administrator
+# WorkingDirectory MUST be the repository root (where deploy/ sits), not app/
+WorkingDirectory=/opt/delegatum
+ExecStart=/usr/bin/python3 deploy/apply-update.py
+TimeoutStartSec=2400

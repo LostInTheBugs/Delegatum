@@ -1,4 +1,6 @@
 __pycache__/
+deploy/__pycache__/
+deploy/update.log
 *.py[cod]
 *.db
 .env
