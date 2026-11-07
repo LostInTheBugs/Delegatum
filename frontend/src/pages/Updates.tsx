@@ -13,7 +13,7 @@ const INTERVALS = [
   { value: 168, labelKey: 'updates.interval_1week' },
 ]
 
-function formatDate(d: string | null): string {
+function formatDate(d: number | string | null): string {
   if (!d) return '—'
   return new Date(d).toLocaleString()
 }
