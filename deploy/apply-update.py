@@ -56,7 +56,7 @@ def log(message: str) -> None:
 def _compose_exec(*cmd: str, _stdin: str | None = None) -> str:
     """Exécuter une commande dans le conteneur backend, retourner stdout.
     Si _stdin est fourni, le transfère via stdin du conteneur."""
-    proc_cmd = ["docker", "compose", "-f", str(COMPOSE), "exec", "-T", "backend", *cmd]
+    proc_cmd = ["docker", "compose", "exec", "-T", "backend", *cmd]
     kwargs: dict = {
         "cwd": APP_DIR,
         "capture_output": True,
@@ -75,7 +75,7 @@ def _compose_exec(*cmd: str, _stdin: str | None = None) -> str:
 def _compose_up(*args: str) -> None:
     """Lancer `docker compose up …`."""
     res = subprocess.run(
-        ["docker", "compose", "-f", str(COMPOSE), "up", *args],
+        ["docker", "compose", "up", *args],
         cwd=APP_DIR,
         capture_output=True,
         text=True,
@@ -131,7 +131,7 @@ def _check_docker_available() -> bool:
     """Vérifier que Docker compose est opérationnel."""
     try:
         res = subprocess.run(
-            ["docker", "compose", "-f", str(COMPOSE), "ps"],
+            ["docker", "compose", "ps"],
             cwd=APP_DIR,
             capture_output=True,
             text=True,

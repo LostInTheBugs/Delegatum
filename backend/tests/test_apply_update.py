@@ -322,3 +322,20 @@ class TestBackupFailure:
 
         assert result != "ok"
         assert "backup impossible" in result
+
+
+# ── pas de -f dans les commandes docker compose ──────────────────────
+
+class TestNoComposeFlagF:
+    """Vérifier qu'aucune commande docker compose construite n'utilise -f."""
+
+    def test_absence_flag_f(self) -> None:
+        """Aucun appel subprocess ne contient '-f' après 'docker compose'."""
+        import inspect
+
+        for func_name in ("_compose_exec", "_compose_up", "_check_docker_available"):
+            src = inspect.getsource(getattr(_mod, func_name))
+            # La liste de cmd ne doit jamais contenir '"-f"'
+            assert '"-f"' not in src and "'-f'" not in src, (
+                f"{func_name} contient '-f' dans la liste de commande"
+            )

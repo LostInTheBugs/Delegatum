@@ -14,6 +14,12 @@ All notable changes to this project are documented in this file.
 - **Navigation frontend** : la barre de navigation, le tableau de bord et la page Organisation filtrent dynamiquement les entrées selon le profil d'instance.
 - **i18n** : traductions ajoutées pour les libellés du profil d'instance dans les 5 langues (fr, en, de, pt, lb).
 
+## [2026.11.002-c1] — 2026-11-07
+
+- **correctif de l'applicateur** : suppression de `-f docker-compose.yml` dans toutes les commandes `docker compose` ; le script utilise désormais `cwd=APP_DIR` et s'appuie sur la découverte automatique de Compose (charge `docker-compose.override.yml` et `.env` du dossier, sans conflit de `container_name` ni de mauvais ports). Ajout d'un test garantissant qu'aucune commande construite ne contient `-f`.
+- **traduction lb** : « verfügbar » → « disponibel » dans `updates.update_available`.
+- **tests** : release simulée 2099 (`test_apply_update.py` : vérification `-f` ; `test_updates.py` : NEWER=2099.01.001).
+
 ## [2026.11.002] — 2026-11-07
 
 ### 🔄 Self-update — vérification, demande, application et garde-fous

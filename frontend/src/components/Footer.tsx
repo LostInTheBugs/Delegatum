@@ -15,7 +15,7 @@ export default function Footer() {
       justifyContent: 'center',
       gap: 24,
     }}>
-      <span>Delegatum v2026.11.002</span>
+      <span>Delegatum v2026.11.002-c1</span>
       <a href="https://github.com/LostInTheBugs/Delegatum" target="_blank" rel="noopener noreferrer"
         style={{ color: 'rgba(255,255,255,0.7)', textDecoration: 'underline' }}>
         GitHub
