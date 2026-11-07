@@ -20,6 +20,9 @@ os.environ["SD_DATABASE_URL"] = f"sqlite:///{_db_path}"
 os.environ["SD_EMAIL_DIR"] = f"{tempfile.gettempdir()}/sd_emails_test"
 # Clé de signature JWT de test (garde assert_secret_key_is_set : ≥32 car., ≠ valeurs d'exemple)
 os.environ.setdefault("SD_SECRET_KEY", "test-secret-key-0123456789abcdef0123456789abcdef")
+os.environ.setdefault("SD_INSTANCE_ADMIN_EMAILS", "")
+os.environ.setdefault("SD_DATA_DIR", tempfile.mkdtemp(prefix="sd_data_test_"))
+os.environ["SD_UPDATE_LOOP"] = "0"
 os.makedirs(os.environ["SD_EMAIL_DIR"], exist_ok=True)
 
 from app.main import app

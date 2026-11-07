@@ -39,4 +39,5 @@ def init_db():
     from app.models.time_entry import TimeEntry  # noqa
     from app.models.minute import Minute, MinuteSection  # noqa
     from app.models.vault_key import VaultKey  # noqa
+    from app.models.update_config import UpdateConfig  # noqa
     Base.metadata.create_all(bind=engine)

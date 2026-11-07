@@ -13,6 +13,8 @@ from app.models.election import Election, ElectionStatus, ElectionCandidate, Ele
 from app.models.safety_register import SafetyRegisterEntry, SafetyRegisterEvent, SafetyRegisterSeal
 from app.models.jwt_revocation import JwtRevocation
 
+from app.models.update_config import UpdateConfig
+
 __all__ = [
     "User", "UserRole", "DelegueStatus", "DelegueRole", "Organization", "Invitation",
     "Minute", "MinuteSection", "MinutePublication", "MinuteStatus", "SectionVisibility",
@@ -26,4 +28,5 @@ __all__ = [
     "Election", "ElectionStatus", "ElectionCandidate", "ElectionBallot", "ElectionVoteTally",
     "SafetyRegisterEntry", "SafetyRegisterEvent", "SafetyRegisterSeal",
     "JwtRevocation",
+    "UpdateConfig",
 ]

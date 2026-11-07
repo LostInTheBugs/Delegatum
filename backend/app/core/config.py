@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60 * 24  # 24 hours
     invitation_code_length: int = 8
     instance_profile: str = "dp"
+    data_dir: str = "./data"
+    instance_admin_emails: str = ""
+    update_loop: bool = True
 
     model_config = {"env_prefix": "SD_", "env_file": ".env"}
 
