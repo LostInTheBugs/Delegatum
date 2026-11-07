@@ -2,16 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
-## [Unreleased]
+## [2026.11.001] — 2026-11-07
 
 ### 🧩 Instance profile — module filtering par déploiement
 
-- **Profil d'instance** (`SD_INSTANCE_PROFILE`) : le déploiement peut limiter les modules exposés aux `dp` (tous), `sst`, `egalite` ou `egalite,sst`. Le profil est renvoyé dans les réponses API (`organization.instance_profile`) et appliqué au démarrage (`assert_instance_profile_valid` refuse les valeurs invalides).
-- **Modules masqués par profil** : `sst` et `egalite` cachent le cœur DP (meetings, élections, consultations, workforce_stats, tableau d'affichage) et exposent les modules spécialisés (safety_register, delegate_activities, egalite).
-- **Migration `20260801_0019`** : pour les organisations existantes avec `enabled_modules` non NULL, la migration ajoute automatiquement `meetings` à toute liste et `safety_register` si `legal` était présent.
-- **Gardes routes** : les routes `meeting`, `minute`, `vault`, `share` refusent (`403`) si le profil ne contient pas `meetings` ; la route `legal` refuse si le profil ne contient pas `egalite` ou `sst`.
-- **Schema** : `OrganizationResponse.instance_profile` calculé dynamiquement depuis les paramètres de l'instance.
-- **Docs** : `README.md`, `README.fr.md`, `docker-compose.yml`, `CHANGELOG.md` mis à jour.
+- **Variable d'environnement `SD_INSTANCE_PROFILE`** : le déploiement peut limiter les modules exposés aux profils `dp` (tous les modules), `sst` (santé-sécurité uniquement), `egalite` (égalité uniquement) ou `sst,egalite` (combinaison).
+- **Démarrage protégé** : `assert_instance_profile_valid()` refuse le démarrage si `SD_INSTANCE_PROFILE` est absent ou contient une valeur non reconnue.
+- **Filtrage des modules** : les profils `sst` et `egalite` masquent le cœur DP (meetings, élections, consultations, workforce_stats, dashboard) et exposent les modules spécialisés (safety_register, delegate_activities, egalite).
+- **Gardes d'accès 403/400** : les routes `meeting`, `minute`, `vault`, `share` refusent (403) si le profil ne contient pas `meetings` ; la route `legal` refuse si le profil ne contient pas `egalite` ou `sst`.
+- **Migration Alembic `20260801_0019`** : pour les organisations existantes avec `enabled_modules` non NULL, la migration ajoute automatiquement `meetings` à toute liste et `safety_register` si `legal` était présent.
+- **Navigation frontend** : la barre de navigation, le tableau de bord et la page Organisation filtrent dynamiquement les entrées selon le profil d'instance.
+- **i18n** : traductions ajoutées pour les libellés du profil d'instance dans les 5 langues (fr, en, de, pt, lb).
 
 ## [2026.09.006] — 2026-09-16
 

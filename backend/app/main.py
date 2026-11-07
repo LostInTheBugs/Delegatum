@@ -15,7 +15,7 @@ assert_instance_profile_valid()
 app = FastAPI(
     title="Delegatum",
     description="Outil de gestion pour les délégations du personnel au Luxembourg",
-    version="2026.09.006",
+    version="2026.11.001",
 )
 
 # CORS — allow the frontend dev server (and any explicit override).
