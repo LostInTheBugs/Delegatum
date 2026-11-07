@@ -812,12 +812,12 @@ export interface UpdateRequest {
 
 export interface UpdateApplier {
   installed: boolean
-  seen_at: string | null
-  applied: boolean
-  applied_at: string | null
-  result: string | null
-  running: boolean
-  running_at: string | null
+  seen_at: number
+  applied: string
+  applied_at: number
+  result: string
+  running: string
+  running_at: number
 }
 
 export interface UpdateSettings {

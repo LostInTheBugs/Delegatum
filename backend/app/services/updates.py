@@ -139,12 +139,13 @@ def _upd_state() -> dict:
     rows = _upd_rows()
     latest_v = str(rows.get("upd_latest") or "")
     req = _upd_read_json(_upd_data_dir() / "update-request.json")
+    app = _upd_read_json(_upd_data_dir() / "update-applier.json")
     available = bool(latest_v) and _upd_vtuple(latest_v) > _upd_vtuple(VERSION)
     try:
         check_h = int(float(_upd_conf("upd_check_h")))
     except (TypeError, ValueError):
         check_h = 1
-    seen = float(req.get("seen_at") or 0)
+    seen = float(app.get("seen_at") or 0)
     return {
         "current": VERSION,
         "latest": (
@@ -171,6 +172,15 @@ def _upd_state() -> dict:
             if req.get("version")
             else None
         ),
+        "applier": {
+            "installed": seen > 0,
+            "seen_at": seen,
+            "applied": str(app.get("applied") or ""),
+            "applied_at": float(app.get("at") or 0),
+            "result": str(app.get("result") or ""),
+            "running": str(app.get("running") or ""),
+            "running_at": float(app.get("running_at") or 0),
+        },
         "settings": {
             "upd_check_h": check_h,
             "upd_apply_auto": _upd_conf("upd_apply_auto") == "1",

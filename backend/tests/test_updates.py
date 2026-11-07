@@ -679,3 +679,127 @@ def test_304_keeps_previous_version(monkeypatch, client, sophie_token, tmp_path)
     assert d2["latest"]["version"] == NEWER  # même version
     assert d2["available"] is True
     assert d2["check"]["error"] == ""  # pas d'erreur
+
+
+# ---------------------------------------------------------------------------
+# Tests applier state
+# ---------------------------------------------------------------------------
+
+def test_applier_state_has_key(monkeypatch, client, sophie_token, tmp_path):
+    """GET /api/admin/updates renvoie une clé 'applier' dans l'état."""
+    from app.core.config import get_settings
+    from app.services import updates as upd
+
+    monkeypatch.setenv("SD_DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    monkeypatch.setattr(upd, "_upd_latest_release", lambda: None)
+
+    resp = client.get(
+        "/api/admin/updates",
+        headers={"Authorization": f"Bearer {sophie_token}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "applier" in data
+    applier = data["applier"]
+    assert "installed" in applier
+    assert "seen_at" in applier
+    assert "applied" in applier
+    assert "applied_at" in applier
+    assert "result" in applier
+    assert "running" in applier
+    assert "running_at" in applier
+
+
+def test_applier_installed_false_no_file(monkeypatch, client, sophie_token, tmp_path):
+    """Sans update-applier.json → installed=false, tous les champs à 0/vide."""
+    from app.core.config import get_settings
+    from app.services import updates as upd
+
+    monkeypatch.setenv("SD_DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+    monkeypatch.setattr(upd, "_upd_latest_release", lambda: None)
+
+    resp = client.get(
+        "/api/admin/updates",
+        headers={"Authorization": f"Bearer {sophie_token}"},
+    )
+    assert resp.status_code == 200
+    applier = resp.json()["applier"]
+    assert applier["installed"] is False
+    assert applier["seen_at"] == 0
+    assert applier["applied"] == ""
+    assert applier["applied_at"] == 0
+    assert applier["result"] == ""
+    assert applier["running"] == ""
+    assert applier["running_at"] == 0
+
+
+def test_applier_installed_true_with_file(monkeypatch, client, sophie_token, tmp_path):
+    """Avec update-applier.json → installed=true, valeurs lues."""
+    from app.core.config import get_settings
+    from app.services import updates as upd
+
+    monkeypatch.setenv("SD_DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+
+    applier_data = {
+        "seen_at": 1700000000.0,
+        "result": "ok",
+        "applied": "2026.11.001",
+        "at": 1700000001.0,
+        "running": "",
+        "running_at": 0,
+    }
+    (tmp_path / "update-applier.json").write_text(
+        json.dumps(applier_data), encoding="utf-8"
+    )
+
+    monkeypatch.setattr(upd, "_upd_latest_release", lambda: None)
+
+    resp = client.get(
+        "/api/admin/updates",
+        headers={"Authorization": f"Bearer {sophie_token}"},
+    )
+    assert resp.status_code == 200
+    applier = resp.json()["applier"]
+    assert applier["installed"] is True
+    assert applier["seen_at"] == 1700000000.0
+    assert applier["applied"] == "2026.11.001"
+    assert applier["applied_at"] == 1700000001.0
+    assert applier["result"] == "ok"
+    assert applier["running"] == ""
+    assert applier["running_at"] == 0
+
+
+def test_applier_running(monkeypatch, client, sophie_token, tmp_path):
+    """Applier en cours d'exécution → running=true, running_at renseigné."""
+    from app.core.config import get_settings
+    from app.services import updates as upd
+
+    monkeypatch.setenv("SD_DATA_DIR", str(tmp_path))
+    get_settings.cache_clear()
+
+    (tmp_path / "update-applier.json").write_text(
+        json.dumps({
+            "seen_at": 1700000000.0,
+            "result": "",
+            "applied": "",
+            "at": 0,
+            "running": "2026.11.001",
+            "running_at": 1700000010.0,
+        }),
+        encoding="utf-8",
+    )
+
+    monkeypatch.setattr(upd, "_upd_latest_release", lambda: None)
+
+    resp = client.get(
+        "/api/admin/updates",
+        headers={"Authorization": f"Bearer {sophie_token}"},
+    )
+    assert resp.status_code == 200
+    applier = resp.json()["applier"]
+    assert applier["running"] == "2026.11.001"
+    assert applier["running_at"] == 1700000010.0
+    assert applier["installed"] is True

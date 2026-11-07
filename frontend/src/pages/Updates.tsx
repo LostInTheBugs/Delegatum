@@ -54,7 +54,7 @@ export default function UpdatesPage() {
 
   // ── Polling while update is pending ──
   useEffect(() => {
-    const pending = state && (state.request !== null || state.applier.running)
+    const pending = state && (state.request !== null || state.applier?.running)
     if (!pending) return
     const id = setInterval(fetchState, 15000)
     return () => clearInterval(id)
@@ -175,7 +175,7 @@ export default function UpdatesPage() {
         </section>
 
         {/* ── Apply ── */}
-        {state.available && state.request === null && !state.applier.running && (
+        {state.available && state.request === null && !state.applier?.running && (
           <section style={{ border: '1px solid var(--gray-300)', borderRadius: 8, padding: 16, marginBottom: 24 }}>
             <h2 style={{ marginTop: 0 }}>{t('updates.apply_title')}</h2>
             <button onClick={handleApply} disabled={applying} style={{
@@ -185,9 +185,9 @@ export default function UpdatesPage() {
               {applying ? t('updates.applying') : t('updates.apply_update')}
             </button>
             {applyError && <p style={{ color: '#dc3545', marginTop: 8 }}>{applyError}</p>}
-            {state.applier.applied && (
+            {state.applier?.applied && (
               <p style={{ color: '#155724', marginTop: 8 }}>
-                {t('updates.applied_version')}: {state.latest.version} ({state.applier.applied_at ? formatDate(state.applier.applied_at) : ''})
+                {t('updates.applied_version')}: {state.latest.version} ({state.applier?.applied_at ? formatDate(state.applier?.applied_at) : ''})
               </p>
             )}
           </section>
@@ -233,19 +233,19 @@ export default function UpdatesPage() {
         {/* ── Applier status ── */}
         <section style={{ border: '1px solid var(--gray-300)', borderRadius: 8, padding: 16 }}>
           <h2 style={{ marginTop: 0 }}>{t('updates.applier_title')}</h2>
-          {!state.applier.installed ? (
+          {!state.applier?.installed ? (
             <div style={{ color: '#856404', background: '#fff3cd', padding: 12, borderRadius: 4 }}>
               <p style={{ margin: '0 0 8px 0' }}>{t('updates.applier_not_installed')}</p>
               <p style={{ margin: 0 }}>{t('updates.applier_readme_section')}</p>
             </div>
           ) : (
             <>
-              <p><strong>{t('updates.last_run')}</strong> {formatDate(state.applier.seen_at)}</p>
-              <p><strong>{t('updates.last_version_applied')}</strong> {state.applier.applied ? state.latest.version : '—'}</p>
-              <p><strong>{t('updates.last_result')}</strong> {state.applier.result || '—'}</p>
-              {state.applier.running && (
+              <p><strong>{t('updates.last_run')}</strong> {formatDate(state.applier?.seen_at)}</p>
+              <p><strong>{t('updates.last_version_applied')}</strong> {state.applier?.applied ? state.latest.version : '—'}</p>
+              <p><strong>{t('updates.last_result')}</strong> {state.applier?.result || '—'}</p>
+              {state.applier?.running && (
                 <p style={{ color: '#004085', background: '#cce5ff', padding: '4px 12px', borderRadius: 4, fontWeight: 600 }}>
-                  {t('updates.applying_version')}: {state.latest.version} ({formatDate(state.applier.running_at)})
+                  {t('updates.applying_version')}: {state.latest.version} ({formatDate(state.applier?.running_at)})
                 </p>
               )}
             </>
