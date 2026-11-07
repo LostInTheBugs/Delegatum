@@ -36,16 +36,16 @@ export default function App() {
       <Route path="/organization" element={<ProtectedRoute><EditOrganization /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
       <Route path="/organigramme" element={<ProtectedRoute><Organigramme /></ProtectedRoute>} />
-      <Route path="/meetings" element={<ProtectedRoute><Meetings /></ProtectedRoute>} />
+      <Route path="/meetings" element={<ModuleRoute module="meetings"><Meetings /></ModuleRoute>} />
       <Route path="/hours" element={<ModuleRoute module="time_tracking"><TimeTracking /></ModuleRoute>} />
-      <Route path="/meetings/:meetingId/minutes" element={<ProtectedRoute><MinutesPage /></ProtectedRoute>} />
-      <Route path="/archive" element={<ProtectedRoute><MinutesArchive /></ProtectedRoute>} />
+      <Route path="/meetings/:meetingId/minutes" element={<ModuleRoute module="meetings"><MinutesPage /></ModuleRoute>} />
+      <Route path="/archive" element={<ModuleRoute module="meetings"><MinutesArchive /></ModuleRoute>} />
       <Route path="/delegate-activities" element={<ModuleRoute module="delegate_activities"><DelegateActivities /></ModuleRoute>} />
       <Route path="/notices" element={<ModuleRoute module="notices"><NoticeBoard /></ModuleRoute>} />
       <Route path="/compliance" element={<ModuleRoute module="compliance"><ComplianceBoard /></ModuleRoute>} />
       <Route path="/elections" element={<ModuleRoute module="elections"><Elections /></ModuleRoute>} />
       <Route path="/formation" element={<ModuleRoute module="legal"><FormationPage /></ModuleRoute>} />
-      <Route path="/safety-register" element={<ModuleRoute module="legal"><SafetyRegisterPage /></ModuleRoute>} />
+      <Route path="/safety-register" element={<ModuleRoute module="safety_register"><SafetyRegisterPage /></ModuleRoute>} />
       <Route path="/protection" element={<ModuleRoute module="legal"><ProtectionPage /></ModuleRoute>} />
       <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
       <Route path="/consultations" element={<ModuleRoute module="consultations"><Consultations /></ModuleRoute>} />

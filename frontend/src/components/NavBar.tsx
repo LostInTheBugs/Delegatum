@@ -49,24 +49,24 @@ export default function NavBar() {
       <nav style={{ background:'#fff', borderBottom:'1px solid var(--gray-300)', padding:'10px 24px', display:'flex', gap:20, flexWrap:'wrap', alignItems:'center' }}>
         <Link to="/dashboard" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.dashboard')}</Link>
         <Link to="/organigramme" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.organigramme')}</Link>
-        <Link to="/meetings" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem', position:'relative' }}>
+        {hasModule(organization, 'meetings') && <Link to="/meetings" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem', position:'relative' }}>
           {t('nav.meetings')}
           {pending > 0 && (
             <span style={{ position:'absolute', top:-8, right:-12, background:'var(--red)', color:'#fff', borderRadius:'50%', width:20, height:20, fontSize:'.7rem', fontWeight:700, display:'inline-flex', alignItems:'center', justifyContent:'center' }}>
               {pending}
             </span>
           )}
-        </Link>
+        </Link>}
         {hasModule(organization, 'consultations') && <Link to="/consultations" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.consultations')}</Link>}
         {hasModule(organization, 'workforce_stats') && <Link to="/workforce-stats" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.stats')}</Link>}
-        <Link to="/archive" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.archive')}</Link>
+        {hasModule(organization, 'meetings') && <Link to="/archive" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.archive')}</Link>}
         {hasModule(organization, 'delegate_activities') && <Link to="/delegate-activities" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.delegate_activities')}</Link>}
         {hasModule(organization, 'notices') && <Link to="/notices" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>📌 {t('nav.notices')}</Link>}
         {hasModule(organization, 'compliance') && <Link to="/compliance" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>⚖️ {t('nav.compliance')}</Link>}
         {hasModule(organization, 'elections') && <Link to="/elections" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>🗳️ {t('nav.elections')}</Link>}
         {hasModule(organization, 'legal') && <><Link to="/formation" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>🎓 {t('nav.formation')}</Link>
-        <Link to="/safety-register" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>🛡️ {t('nav.register')}</Link>
         <Link to="/protection" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>⛨ {t('nav.protection')}</Link></>}
+        {hasModule(organization, 'safety_register') && <Link to="/safety-register" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>🛡️ {t('nav.register')}</Link>}
         {hasModule(organization, 'time_tracking') && <Link to="/hours" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>⏱️ {t('nav.hours')}</Link>}
         {hasModule(organization, 'contact') && <Link to="/contact" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>📇 {t('nav.contact')}</Link>}
         {user?.role === 'admin' && <Link to="/organization" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.organization')}</Link>}

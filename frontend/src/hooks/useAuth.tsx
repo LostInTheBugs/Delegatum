@@ -15,10 +15,19 @@ interface Organization {
   country: string; employee_count: number; mandate_end_date: string | null; required_titulaires: number
   weekly_credit_hours: number | null
   enabled_modules: string[]
+  instance_profile?: string
+  instance_domains?: string[]
   logo_data: string | null
   contact_email: string | null
   contact_phone: string | null
   contact_hours: string | null
+}
+
+/** True si l'instance couvre le domaine donné (rétrocompat : aucun filtre → true). */
+export function hasDomain(org: Organization | null, domain: string): boolean {
+  if (!org) return true
+  if (!org.instance_domains || org.instance_domains.length === 0) return true
+  return org.instance_domains.includes(domain)
 }
 
 /** True si le module est actif pour l'organisation (défaut : tous actifs). */
