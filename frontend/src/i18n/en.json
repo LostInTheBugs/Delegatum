@@ -545,5 +545,13 @@
   "templates.egalite.p6": "Staff awareness — annual separate convocation by gender (Art. L.414-15)",
   "templates.egalite.p7": "Equality delegate training: 2 half-days per year (Art. L.415-9)",
   "templates.egalite.p8": "Next equality actions"
+,
+  "modules.meetings": "📅 Meetings, Minutes & Archive",
+  "modules.safety_register": "🛡️ Health & Safety Register",
+  "modules.legal": "🎓 Training / Protection",
+  "org.instance_profile": "Instance profile",
+  "profile.sst": "Health & Safety Delegate",
+  "profile.egalite": "Equality Delegate",
+  "profile.egalite,sst": "Health & Safety and Equality Delegates"
 
 }

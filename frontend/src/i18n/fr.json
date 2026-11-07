@@ -545,5 +545,13 @@
   "templates.egalite.p6": "Sensibilisation du personnel — convocation annuelle par sexe (L.414-15)",
   "templates.egalite.p7": "Formation du délégué à l'égalité : 2 demi-journées par an (L.415-9)",
   "templates.egalite.p8": "Prochaines actions en faveur de l'égalité"
+,
+  "modules.meetings": "📅 Réunions, PV et archive",
+  "modules.safety_register": "🛡️ Registre sécurité & santé",
+  "modules.legal": "🎓 Formation / Protection",
+  "org.instance_profile": "Profil de l'instance",
+  "profile.sst": "Délégué(e) à la sécurité et à la santé",
+  "profile.egalite": "Délégué(e) à l'égalité",
+  "profile.egalite,sst": "Délégué(e)s sécurité-santé et égalité"
 
 }

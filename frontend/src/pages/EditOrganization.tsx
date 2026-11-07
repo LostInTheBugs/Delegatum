@@ -33,11 +33,13 @@ export default function EditOrganization() {
   const [err, setErr] = useState<string | null>(null)
   const [members, setMembers] = useState<Member[]>([])
   const [modules, setModules] = useState<string[]>(organization?.enabled_modules || [])
+  const [availableModules, setAvailableModules] = useState<string[]>([...api.ALL_MODULES])
   const [logoData, setLogoData] = useState<string | null>(organization?.logo_data || null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
 
   useEffect(() => {
     if (!isAdmin) { navigate('/dashboard'); return }
+    api.getModules().then(r => setAvailableModules(r.available))
     loadMembers()
     if (organization?.enabled_modules?.length) setModules(organization.enabled_modules)
     if (organization?.logo_data) setLogoData(organization.logo_data)
@@ -192,8 +194,9 @@ export default function EditOrganization() {
         <div className="card mb-24">
           <h2>🧩 {t('org.modules_title')}</h2>
           <p style={{ color: 'var(--gray-600)', marginBottom: 12 }}>{t('org.modules_hint')}</p>
+          {organization?.instance_profile && organization.instance_profile !== 'dp' && <p>{t('org.instance_profile')} : {t('profile.' + organization.instance_profile)}</p>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8, marginBottom: 12 }}>
-            {api.ALL_MODULES.map(m => (
+            {api.ALL_MODULES.filter(m => availableModules.includes(m)).map(m => (
               <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--gray-300)', borderRadius: 6, cursor: 'pointer', fontSize: '.9rem', background: modules.includes(m) ? '#ebf8ff' : '#fff' }}>
                 <input type="checkbox" checked={modules.includes(m)} onChange={() => toggleModule(m)} />
                 {t(`modules.${m}`)}

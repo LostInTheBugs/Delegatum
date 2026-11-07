@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator
 
 
 # ── CAPTCHA ───────────────────────────────────────────────────────
@@ -163,6 +163,17 @@ class OrganizationResponse(BaseModel):
     contact_email: str | None = None
     contact_phone: str | None = None
     contact_hours: str | None = None
+    @computed_field
+    @property
+    def instance_domains(self) -> list[str]:
+        from app.core.modules import instance_domains
+        return sorted(instance_domains())
+
+    @computed_field
+    @property
+    def instance_profile(self) -> str:
+        from app.core.config import get_settings
+        return get_settings().instance_profile
 
     model_config = {"from_attributes": True}
 

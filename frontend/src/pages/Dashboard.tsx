@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useAuth, hasModule } from '../hooks/useAuth'
+import { useAuth, hasModule, hasDomain } from '../hooks/useAuth'
 import { useVault } from '../hooks/useVault'
 import NavBar from '../components/NavBar'
 import { useT } from '../i18n/I18nContext'
@@ -50,7 +50,9 @@ export default function Dashboard() {
     if (!user) return
     const h = { Authorization: 'Bearer ' + localStorage.getItem('token') }
     const month = new Date().toISOString().slice(0, 7)
-    fetch('/api/meetings/stats', { headers: h }).then(r => r.json()).then(setMeetingStats).catch(() => {})
+    if (hasModule(organization, 'meetings')) {
+      fetch('/api/meetings/stats', { headers: h }).then(r => r.json()).then(setMeetingStats).catch(() => {})
+    }
     if (hasModule(organization, 'consultations')) {
       fetch('/api/consultations/stats', { headers: h }).then(r => r.json()).then(setConsultStats).catch(() => {})
     }
@@ -61,16 +63,18 @@ export default function Dashboard() {
       fetch('/api/workforce-stats/latest', { headers: h }).then(r => r.json()).then(setWorkforce).catch(() => {})
     }
     fetch('/api/organization/members', { headers: h }).then(r => r.json()).then(setMembers).catch(() => {})
-    fetch('/api/meetings', { headers: h })
-      .then(r => r.json())
-      .then(list => {
-        const now = new Date().toISOString()
-        const upcoming = list
-          .filter((m: any) => m.date >= now && m.status !== 'cancelled')
-          .sort((a: any, b: any) => a.date.localeCompare(b.date))
-        setNextMeeting(upcoming[0] ?? null)
-      })
-      .catch(() => {})
+    if (hasModule(organization, 'meetings')) {
+      fetch('/api/meetings', { headers: h })
+        .then(r => r.json())
+        .then(list => {
+          const now = new Date().toISOString()
+          const upcoming = list
+            .filter((m: any) => m.date >= now && m.status !== 'cancelled')
+            .sort((a: any, b: any) => a.date.localeCompare(b.date))
+          setNextMeeting(upcoming[0] ?? null)
+        })
+        .catch(() => {})
+    }
   }, [user])
 
   useEffect(() => { if (!user) fetchDashboard() }, [])
@@ -196,6 +200,7 @@ export default function Dashboard() {
         {/* ── Vitrine : vue d'ensemble ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14, marginBottom: 24 }}>
           {/* Réunions */}
+          {hasModule(organization, 'meetings') && (
           <div className="card" style={{ borderTop: '4px solid var(--blue)' }}>
             <h3 style={{ marginTop: 0, fontSize: '.95rem' }}>📅 {t('dashboard.widget_meetings')}</h3>
             {meetingStats ? (
@@ -214,6 +219,7 @@ export default function Dashboard() {
               </p>
             )}
           </div>
+          )}
 
           {/* Consultations */}
           {hasModule(organization, 'consultations') && (
@@ -344,14 +350,18 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div className="form-group" style={{ display: 'flex', gap: 24 }}>
+                    {hasDomain(organization, 'securite_sante') && (
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, fontSize: '.85rem' }}>
                       <input type="checkbox" checked={inviteForm.is_delegue_securite_sante} onChange={e => updateInvite('is_delegue_securite_sante', e.target.checked)} />
                       {t('dashboard.invite_secu')}
                     </label>
+                    )}
+                    {hasDomain(organization, 'egalite') && (
                     <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, fontSize: '.85rem' }}>
                       <input type="checkbox" checked={inviteForm.is_delegue_egalite} onChange={e => updateInvite('is_delegue_egalite', e.target.checked)} />
                       {t('dashboard.invite_egalite')}
                     </label>
+                    )}
                   </div>
 
                   {inviteError && <div className="error-msg">{inviteError}</div>}

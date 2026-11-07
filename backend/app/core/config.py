@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 24 hours
     invitation_code_length: int = 8
+    instance_profile: str = "dp"
 
     model_config = {"env_prefix": "SD_", "env_file": ".env"}
 
@@ -36,6 +37,19 @@ def assert_secret_key_is_set() -> None:
             "caractères — ex. `openssl rand -hex 32`). Refus de démarrer "
             "avec la valeur par défaut : des jetons JWT seraient forgeables."
         )
+
+
+def assert_instance_profile_valid() -> None:
+    """Refuse le démarrage avec un profil d'instance invalide.
+
+    Les profils valides sont : dp, sst, egalite, egalite,sst.
+    """
+    from app.core.modules import instance_modules
+
+    try:
+        instance_modules()
+    except ValueError as exc:
+        raise RuntimeError(f"SD_INSTANCE_PROFILE invalide : {exc}") from exc
 
 
 @lru_cache
