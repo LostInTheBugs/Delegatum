@@ -16,6 +16,10 @@ Outil de gestion pour les **délégations du personnel** au Luxembourg (Code du 
 - 🖥️ **Application de bureau** : [dernières releases](https://github.com/LostInTheBugs/Delegatum/releases) (zips Windows/macOS ; guides d'utilisation FR/EN/DE/LB inclus)
 - 🐳 **Auto-hébergé** : `docker compose up -d --build` puis `bash seed.sh` (détails dans le [README](README.md))
 
+## Configuration
+
+- `SD_INSTANCE_PROFILE` : profil d'instance — restreint les modules disponibles (`dp` = tous, `sst`, `egalite`, ou `egalite,sst`). Défaut : `dp`.
+
 ## Documentation
 
 - Guides détaillés (FR/DE/LB/EN) : https://cloudfr.net/docs/delegatum/
