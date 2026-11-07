@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_module
+from app.core.modules import instance_domains
 from app.models.delegate_activity import DelegateActivity
 from app.models.user import User
 from app.schemas.delegate_activity import (
@@ -59,8 +60,10 @@ def list_activities(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    domains = instance_domains()
     q = db.query(DelegateActivity).filter(
-        DelegateActivity.organization_id == current_user.organization_id
+        DelegateActivity.organization_id == current_user.organization_id,
+        DelegateActivity.domain.in_(domains),
     )
     if year:
         start = datetime(year, 1, 1, tzinfo=timezone.utc)
@@ -96,7 +99,6 @@ def create_activity(
     if not target:
         raise HTTPException(status_code=404, detail="Membre introuvable dans la délégation")
     # Vérifier que le domaine est dans le profil d'instance
-    from app.core.modules import instance_domains
     domains = instance_domains()
     if body.domain not in domains:
         raise HTTPException(status_code=400, detail=f"Le domaine '{body.domain}' est hors profil d'instance")

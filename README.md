@@ -111,6 +111,7 @@ Copy `.env.example` to `.env` and adjust the variables:
 | `SD_PORT` | Backend listen port | `8005` |
 | `SD_SECRET_KEY` | JWT signing key — **required** (the app refuses to start with an example value or a key shorter than 32 chars; docker-compose fails fast if unset) | — |
 | `SD_DATABASE_URL` | Database URL (overridable — SQLite default, PostgreSQL supported) | `sqlite:///./data/staff_delegation.db` |
+| `SD_INSTANCE_PROFILE` | Instance profile — restricts available modules | `dp` (all modules) |
 | `SD_ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token expiration | `1440` (24h) |
 
 The port can be overridden via the `SD_PORT` environment variable in all contexts (Docker, local development). All configuration files reference port 8005 by default.

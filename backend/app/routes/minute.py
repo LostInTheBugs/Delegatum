@@ -6,7 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_module
 from app.models import User, Organization
 from app.models.email import EmailConfig, EmailEventType, TransportMode
 from app.models.minute import Minute, MinuteSection, MinutePublication, MinuteStatus, SectionVisibility
@@ -21,7 +21,8 @@ from app.schemas.minute import (
 )
 from app.services.email_service import queue_email, render_email, send_ready_smtp
 
-router = APIRouter(tags=["minutes"])
+router = APIRouter(tags=["minutes"],
+                   dependencies=[Depends(require_module("meetings"))])
 
 BUREAU_ROLES = {"president", "vice_president", "secretaire"}
 
