@@ -11,6 +11,7 @@
 # positif). Le mode dossier n'extrait rien : beaucoup moins de détections.
 
 import os
+import re
 import sys
 
 ROOT = os.path.abspath(os.path.join(SPECPATH, '..'))  # racine du dépôt, absolue
@@ -18,7 +19,13 @@ BACKEND = os.path.join(ROOT, 'backend')
 
 # --- Version info Windows (générée depuis VERSION à chaque build) ----------
 _ver = open(os.path.join(ROOT, 'VERSION'), encoding='utf-8').read().strip()
-_nums = tuple(([int(x) for x in _ver.split('.')] + [0, 0, 0, 0])[:4])
+_m = re.match(r"^(\d+)\.(\d+)\.(\d+)(?:-c(\d+))?$", _ver)
+if not _m:
+    raise ValueError(f"Version invalide pour PyInstaller : '{_ver}' (attendu NN.NN.NNN[-cN])")
+_raw = _m.groups()
+_c = int(_raw[3]) if _raw[3] else 0
+_nums = (int(_raw[0]), int(_raw[1]), int(_raw[2]), _c)  # (major, minor, patch, c) — toujours 4
+_version_mac = ".".join(str(g) for g in _nums)  # "2026.11.2.N" pour CFBundleVersion
 _vi = os.path.join(SPECPATH, 'version_info.txt')
 with open(_vi, 'w', encoding='utf-8') as f:
     f.write(f'''VSVersionInfo(
@@ -105,7 +112,7 @@ if sys.platform == 'darwin':
         name='Delegatum.app',
         icon='delegatum.icns',
         bundle_identifier='com.lostinthebugs.delegatum',
-        version=_ver,
+        version=_version_mac,
         info_plist={
             'NSHighResolutionCapable': True,
             'LSApplicationCategoryType': 'public.app-category.business',
