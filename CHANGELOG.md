@@ -7,9 +7,9 @@ All notable changes to this project are documented in this file.
 ### 🧩 Instance profile — module filtering par déploiement
 
 - **Variable d'environnement `SD_INSTANCE_PROFILE`** : le déploiement peut limiter les modules exposés aux profils `dp` (tous les modules), `sst` (santé-sécurité uniquement), `egalite` (égalité uniquement) ou `sst,egalite` (combinaison).
-- **Démarrage protégé** : `assert_instance_profile_valid()` refuse le démarrage si `SD_INSTANCE_PROFILE` est absent ou contient une valeur non reconnue.
-- **Filtrage des modules** : les profils `sst` et `egalite` masquent le cœur DP (meetings, élections, consultations, workforce_stats, dashboard) et exposent les modules spécialisés (safety_register, delegate_activities, egalite).
-- **Gardes d'accès 403/400** : les routes `meeting`, `minute`, `vault`, `share` refusent (403) si le profil ne contient pas `meetings` ; la route `legal` refuse si le profil ne contient pas `egalite` ou `sst`.
+- **Démarrage protégé** : `assert_instance_profile_valid()` refuse le démarrage si `SD_INSTANCE_PROFILE` contient une valeur non reconnue (absent = `dp` par défaut).
+- **Filtrage des modules** : les profils `sst` et `egalite` masquent meetings, élections, consultations, workforce_stats, notices, compliance, contact ; le tableau de bord reste accessible. Modules exposés : time_tracking, delegate_activities (domaine(s) du profil), legal (formation + protection) ; `sst` et `egalite,sst` exposent aussi `safety_register`.
+- **Gardes d'accès 403/400** : les routes `meeting`, `minute`, `vault`, `share` refusent (403) si le profil ne contient pas `meetings` ; les routes `/safety-register*` refusent si le profil n'inclut pas `safety_register` ; les domaines hors profil refusent activités, désignation, invitations en 400 ; un PUT de modules hors profil → 400.
 - **Migration Alembic `20260801_0019`** : pour les organisations existantes avec `enabled_modules` non NULL, la migration ajoute automatiquement `meetings` à toute liste et `safety_register` si `legal` était présent.
 - **Navigation frontend** : la barre de navigation, le tableau de bord et la page Organisation filtrent dynamiquement les entrées selon le profil d'instance.
 - **i18n** : traductions ajoutées pour les libellés du profil d'instance dans les 5 langues (fr, en, de, pt, lb).
