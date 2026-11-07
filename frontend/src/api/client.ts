@@ -31,7 +31,6 @@ interface OrganizationResponse {
   contact_email: string | null
   contact_phone: string | null
   contact_hours: string | null
-  profile: string | null
 }
 
 interface DashboardResponse {
@@ -435,6 +434,7 @@ export function getPublicOrg(slug: string): Promise<{ name: string; company_name
 }
 
 export const ALL_MODULES = [
+  'meetings',
   'elections',
   'time_tracking',
   'notices',

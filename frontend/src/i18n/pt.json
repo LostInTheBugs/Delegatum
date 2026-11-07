@@ -550,8 +550,8 @@
   "modules.safety_register": "🛡️ Registo de saúde e segurança",
   "modules.legal": "🎓 Formação / Proteção",
   "org.instance_profile": "Perfil da instância",
-  "profile.sst": "Delegado(a) de santé e segurança",
+  "profile.sst": "Delegado(a) de saúde e segurança",
   "profile.egalite": "Delegado(a) da igualdade",
-  "profile.egalite,sst": "Delegados(as) de santé-segurança e igualdade"
+  "profile.egalite,sst": "Delegados(as) de saúde-segurança e igualdade"
 
 }

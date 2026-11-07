@@ -192,10 +192,11 @@ export default function EditOrganization() {
 
         {/* Modules activables/désactivables */}
         <div className="card mb-24">
-          <h2>🧩 {t('org.modules_title')}{organization?.profile && organization.profile !== 'dp' ? ` : ${t('profile.' + organization.profile)}` : ''}</h2>
+          <h2>🧩 {t('org.modules_title')}</h2>
           <p style={{ color: 'var(--gray-600)', marginBottom: 12 }}>{t('org.modules_hint')}</p>
+          {organization?.instance_profile && organization.instance_profile !== 'dp' && <p>{t('org.instance_profile')} : {t('profile.' + organization.instance_profile)}</p>}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8, marginBottom: 12 }}>
-            {availableModules.map(m => (
+            {api.ALL_MODULES.filter(m => availableModules.includes(m)).map(m => (
               <label key={m} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', border: '1px solid var(--gray-300)', borderRadius: 6, cursor: 'pointer', fontSize: '.9rem', background: modules.includes(m) ? '#ebf8ff' : '#fff' }}>
                 <input type="checkbox" checked={modules.includes(m)} onChange={() => toggleModule(m)} />
                 {t(`modules.${m}`)}

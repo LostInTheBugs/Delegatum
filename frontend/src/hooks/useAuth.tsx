@@ -15,7 +15,6 @@ interface Organization {
   country: string; employee_count: number; mandate_end_date: string | null; required_titulaires: number
   weekly_credit_hours: number | null
   enabled_modules: string[]
-  profile: string | null
   instance_profile?: string
   instance_domains?: string[]
   logo_data: string | null
