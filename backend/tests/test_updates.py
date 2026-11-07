@@ -9,6 +9,10 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 
+# Version « plus récente » fictive : simule des releases au-dessus de la version
+# locale sans figer un numéro réel (les tests ne cassent plus à chaque bump).
+NEWER = "2099.01.001"
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -172,9 +176,9 @@ def test_check_update_sets_state(monkeypatch, client, sophie_token):
     from app.services import updates as upd
 
     mock_release = {
-        "version": "2026.11.002",
+        "version": NEWER,
         "published_at": "2026-11-01T00:00:00Z",
-        "url": "https://github.com/LostInTheBugs/Delegatum/releases/tag/2026.11.002",
+        "url": f"https://github.com/LostInTheBugs/Delegatum/releases/tag/{NEWER}",
         "body": "Nouvelle version\n",
     }
     monkeypatch.setattr(upd, "_upd_latest_release", lambda: mock_release)
@@ -184,9 +188,10 @@ def test_check_update_sets_state(monkeypatch, client, sophie_token):
         headers={"Authorization": f"Bearer {sophie_token}"},
     )
     assert resp.status_code == 200
+    from app.core.version import VERSION
     data = resp.json()
-    assert data["current"] == "2026.11.002"
-    assert data["latest"]["version"] == "2026.11.002"
+    assert data["current"] == VERSION
+    assert data["latest"]["version"] == NEWER
     assert data["available"] is True
 
 
@@ -220,7 +225,7 @@ def test_apply_update_writes_request(monkeypatch, client, sophie_token, tmp_path
     monkeypatch.setenv("SD_DATA_DIR", str(tmp_path))
     get_settings.cache_clear()
     monkeypatch.setattr(upd, "_upd_latest_release", lambda: {
-        "version": "2026.11.002", "published_at": "2026-11-01T00:00:00Z",
+        "version": NEWER, "published_at": "2026-11-01T00:00:00Z",
         "url": "https://example.com", "body": "changelog",
     })
 
@@ -234,7 +239,7 @@ def test_apply_update_writes_request(monkeypatch, client, sophie_token, tmp_path
     req_file = tmp_path / "update-request.json"
     assert req_file.exists()
     req = json.loads(req_file.read_text())
-    assert req["version"] == "2026.11.002"
+    assert req["version"] == NEWER
     assert req["by"] == "demande manuelle"
 
 
@@ -255,7 +260,7 @@ def test_apply_update_already_pending(monkeypatch, client, sophie_token, tmp_pat
     monkeypatch.setenv("SD_DATA_DIR", str(tmp_path))
     get_settings.cache_clear()
     monkeypatch.setattr(upd, "_upd_latest_release", lambda: {
-        "version": "2026.11.002", "published_at": "2026-11-01T00:00:00Z",
+        "version": NEWER, "published_at": "2026-11-01T00:00:00Z",
         "url": "https://example.com", "body": "changelog",
     })
     client.post("/api/admin/updates/check", headers={"Authorization": f"Bearer {sophie_token}"})
@@ -642,9 +647,9 @@ def test_304_keeps_previous_version(monkeypatch, client, sophie_token, tmp_path)
         if call_count[0] == 1:
             # Première appel : réponse 200
             return {
-                "version": "2026.11.002",
+                "version": NEWER,
                 "published_at": "2026-11-01T00:00:00Z",
-                "url": "https://github.com/LostInTheBugs/Delegatum/releases/tag/2026.11.002",
+                "url": f"https://github.com/LostInTheBugs/Delegatum/releases/tag/{NEWER}",
                 "body": "Nouvelle version",
             }
         else:
@@ -653,14 +658,14 @@ def test_304_keeps_previous_version(monkeypatch, client, sophie_token, tmp_path)
 
     monkeypatch.setattr(upd, "_upd_latest_release", mock_release)
 
-    # 1er check : version 2026.11.002 stockée
+    # 1er check : version NEWER stockée
     resp1 = client.post(
         "/api/admin/updates/check",
         headers={"Authorization": f"Bearer {sophie_token}"},
     )
     assert resp1.status_code == 200
     d1 = resp1.json()
-    assert d1["latest"]["version"] == "2026.11.002"
+    assert d1["latest"]["version"] == NEWER
     assert d1["available"] is True
     assert d1["check"]["error"] == ""
 
@@ -671,6 +676,6 @@ def test_304_keeps_previous_version(monkeypatch, client, sophie_token, tmp_path)
     )
     assert resp2.status_code == 200
     d2 = resp2.json()
-    assert d2["latest"]["version"] == "2026.11.002"  # même version
+    assert d2["latest"]["version"] == NEWER  # même version
     assert d2["available"] is True
     assert d2["check"]["error"] == ""  # pas d'erreur
