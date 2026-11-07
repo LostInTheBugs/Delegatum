@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { useAuth, hasModule } from '../hooks/useAuth'
 import { useVault } from '../hooks/useVault'
 import { useT } from '../i18n/I18nContext'
+import * as api from '../api/client'
 import Footer from './Footer'
 
 export default function NavBar() {
@@ -10,6 +11,7 @@ export default function NavBar() {
   const { status } = useVault()
   const { t } = useT()
   const [pending, setPending] = useState(0)
+  const [updatesAllowed, setUpdatesAllowed] = useState<boolean | null>(null)
 
   useEffect(() => {
     async function fetchPending() {
@@ -22,6 +24,14 @@ export default function NavBar() {
     if (token) fetchPending()
     const interval = setInterval(fetchPending, 30000)
     return () => clearInterval(interval)
+  }, [token])
+
+  // Check update permission once on mount
+  useEffect(() => {
+    if (!token) return
+    api.getUpdateAllowed()
+      .then(res => setUpdatesAllowed(res.allowed))
+      .catch(() => setUpdatesAllowed(false))
   }, [token])
 
   // Vault status label and color
@@ -71,6 +81,7 @@ export default function NavBar() {
         {hasModule(organization, 'contact') && <Link to="/contact" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>📇 {t('nav.contact')}</Link>}
         {user?.role === 'admin' && <Link to="/organization" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.organization')}</Link>}
         {user?.role === 'admin' && <Link to="/notifications" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>📧 Notifications</Link>}
+        {updatesAllowed === true && <Link to="/admin/updates" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>🔄 {t('nav.updates')}</Link>}
         <Link to="/settings" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.profile')}</Link>
         {/* Vault status indicator — always visible when authenticated */}
         <span style={{
