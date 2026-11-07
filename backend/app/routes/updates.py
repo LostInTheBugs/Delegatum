@@ -1,8 +1,10 @@
 """Routes API — self-update. Préfixe /api/admin/updates."""
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from app.core.deps import get_current_user, require_instance_admin
+from app.core.database import get_db
 from app.core.version import VERSION
 from app.models import User
 from app.services import updates as upd
@@ -73,10 +75,10 @@ allowed_router = APIRouter(prefix="/api/admin/updates", tags=["self-update"])
 
 
 @allowed_router.get("/allowed")
-def get_update_allowed(user: User = Depends(get_current_user)):
+def get_update_allowed(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Retourne {\"allowed\": true|false} — accessible à tout utilisateur connecté."""
     try:
-        require_instance_admin(user=user)
+        require_instance_admin(user=user, db=db)
         return {"allowed": True}
     except HTTPException as exc:
         if exc.status_code == status.HTTP_403_FORBIDDEN:

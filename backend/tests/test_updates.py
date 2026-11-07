@@ -388,14 +388,136 @@ def test_allowed_member_returns_false(tom_token, client):
     assert resp.json() == {"allowed": False}
 
 
-def test_allowed_admin_mono_org_true(sophie_token, client):
-    """allowed vaut true pour sophie (admin, mono-org)."""
+def test_allowed_with_admin_emails_true(sophie_token, client):
+    """allowed vaut true pour sophie (SD_INSTANCE_ADMIN_EMAILS la reconnait)."""
     resp = client.get(
         "/api/admin/updates/allowed",
         headers={"Authorization": f"Bearer {sophie_token}"},
     )
     assert resp.status_code == 200
     assert resp.json() == {"allowed": True}
+
+
+def test_allowed_mono_org_no_admin_emails(client):
+    """Sans SD_INSTANCE_ADMIN_EMAILS : mono-org + admin → allowed=true."""
+    import pytest
+    from tests.helpers import fetch_captcha
+    from app.core.database import SessionLocal
+    from app.models.user import User
+    from app.core.config import get_settings
+
+    monkeypatch = pytest.MonkeyPatch()
+    monkeypatch.delenv("SD_INSTANCE_ADMIN_EMAILS", raising=False)
+    get_settings.cache_clear()
+
+    try:
+        cid, ans = fetch_captcha(client)
+        r = client.post("/api/organizations", json={
+            "organization_name": "TestPV",
+            "company_name": "TestPV SA",
+            "employee_count": 120,
+            "admin_email": "sophie2@testpv.lu",
+            "admin_password": "test123456",
+            "admin_first_name": "Sophie",
+            "admin_last_name": "Test",
+            "admin_delegue_status": "titulaire",
+            "admin_delegue_role": "president",
+            "captcha_id": cid,
+            "captcha_answer": ans,
+        })
+        assert r.status_code == 201
+
+        cid2, ans2 = fetch_captcha(client)
+        token = _login(client, "sophie2@testpv.lu", "test123456", cid2, ans2)
+
+        # Mono-org admin → allowed
+        resp = client.get(
+            "/api/admin/updates/allowed",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp.status_code == 200
+        assert resp.json() == {"allowed": True}
+
+        # GET /api/admin/updates → 200
+        resp2 = client.get(
+            "/api/admin/updates",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert resp2.status_code == 200
+    finally:
+        monkeypatch.undo()
+        get_settings.cache_clear()
+
+
+def test_allowed_multi_org_no_admin_emails(client, monkeypatch):
+    """Sans SD_INSTANCE_ADMIN_EMAILS : mono-org admin, puis 2e org → allowed=false."""
+    from tests.helpers import fetch_captcha
+    from app.core.database import SessionLocal
+    from app.models.user import User
+    from app.core.config import get_settings
+
+    monkeypatch.delenv("SD_INSTANCE_ADMIN_EMAILS", raising=False)
+    get_settings.cache_clear()
+
+    cid, ans = fetch_captcha(client)
+    r = client.post("/api/organizations", json={
+        "organization_name": "TestPV",
+        "company_name": "TestPV SA",
+        "employee_count": 120,
+        "admin_email": "sophie3@testpv.lu",
+        "admin_password": "test123456",
+        "admin_first_name": "Sophie",
+        "admin_last_name": "Test",
+        "admin_delegue_status": "titulaire",
+        "admin_delegue_role": "president",
+        "captcha_id": cid,
+        "captcha_answer": ans,
+    })
+    assert r.status_code == 201
+
+    cid2, ans2 = fetch_captcha(client)
+    token = _login(client, "sophie3@testpv.lu", "test123456", cid2, ans2)
+    h = {"Authorization": f"Bearer {token}"}
+
+    # Get org_id et user_id de sophie
+    r = client.get("/api/dashboard", headers=h)
+    org_id = r.json()["organization"]["id"]
+    db = SessionLocal()
+    sophie = db.query(User).filter(User.email == "sophie3@testpv.lu").first()
+    sophie_id = sophie.id
+    db.close()
+
+    # Créer 2e organisation (different admin email, same user)
+    cid3, ans3 = fetch_captcha(client)
+    r = client.post("/api/organizations", json={
+        "organization_name": "SecondOrg",
+        "company_name": "Second2 SA",
+        "employee_count": 50,
+        "admin_email": "sophie3b@testpv.lu",
+        "admin_password": "test123456",
+        "admin_first_name": "Sophie",
+        "admin_last_name": "Test",
+        "admin_delegue_status": "titulaire",
+        "admin_delegue_role": "president",
+        "captcha_id": cid3,
+        "captcha_answer": ans3,
+    })
+    assert r.status_code == 201
+
+    # allowed doit être false (2 organisations, pas de SD_INSTANCE_ADMIN_EMAILS)
+    resp = client.get(
+        "/api/admin/updates/allowed",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"allowed": False}
+
+    # GET /api/admin/updates → 403
+    resp2 = client.get(
+        "/api/admin/updates",
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp2.status_code == 403
 
 
 def test_allowed_multi_org_returns_false(monkeypatch, client, tmp_path):
