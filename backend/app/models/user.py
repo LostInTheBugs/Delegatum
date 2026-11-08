@@ -11,6 +11,15 @@ class UserRole(str, enum.Enum):
     member = "member"
 
 
+class AccountType(str, enum.Enum):
+    """Type de compte pour les droits RBAC."""
+    delegation = "delegation"        # comportement actuel (tous les comptes existants)
+    salarie_designe = "salarie_designe"
+    rh = "rh"
+    itm = "itm"
+    police = "police"
+
+
 class DelegueStatus(str, enum.Enum):
     titulaire = "titulaire"
     suppleant = "suppleant"
@@ -63,6 +72,11 @@ class User(Base):
     is_delegue_securite_sante = Column(Boolean, default=False)
     is_delegue_egalite = Column(Boolean, default=False)
     is_first_mandate = Column(Boolean, default=False)  # primo-élu : +16h congé-formation L.415-9
+
+    # Type de compte (RBAC) : délégation (comportement actuel) ou extérieur
+    account_type = Column(SAEnum(AccountType), default=AccountType.delegation, nullable=False)
+    # Date d'expiration de l'accès pour les comptes extérieurs (NULL = permanent)
+    access_expires_at = Column(DateTime(timezone=True), nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

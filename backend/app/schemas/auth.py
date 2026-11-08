@@ -101,6 +101,10 @@ class CreateInvitationRequest(BaseModel):
     delegue_role: str = "membre"
     is_delegue_securite_sante: bool = False
     is_delegue_egalite: bool = False
+    # RBAC : type de compte (delegation ou extérieur)
+    account_type: str = "delegation"
+    # Date d'expiration optionnelle (NULL = permanent)
+    access_expires_at: str | None = None  # ISO format ; recopié à l'inscription
     # Optional vault envelope: if the org has a vault, the inviting member
     # (who holds the DEK) wraps it under a KEK derived from the invitation
     # code and sends this envelope. The server stores it in vault_keys
@@ -207,6 +211,8 @@ class InvitationResponse(BaseModel):
     is_used: bool = False
     created_at: str | None = None
     organization_name: str | None = None
+    account_type: str = "delegation"
+    access_expires_at: str | None = None
 
     model_config = {"from_attributes": True}
 

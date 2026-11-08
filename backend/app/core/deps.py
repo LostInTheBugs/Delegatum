@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.modules import enabled_modules_of
+from app.core.permissions import is_access_expired
 from app.core.security import decode_access_token
 from app.models import User, UserRole
 
@@ -53,6 +54,13 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur non trouvé")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Compte désactivé")
+
+    # Vérification expiration d'accès (RBAC)
+    if is_access_expired(user):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Accès expiré",
+        )
 
     # Révocation JWT (ANALYSE-2026-08-24 §7) :
     # 1. jti révoqué (logout ciblé) → 401 ;

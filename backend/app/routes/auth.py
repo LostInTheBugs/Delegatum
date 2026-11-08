@@ -10,6 +10,7 @@ from app.core.security import verify_password, create_access_token, hash_passwor
 from app.core.captcha import validate_captcha
 from app.core.mfa import generate_totp_secret, generate_totp_uri, generate_qr_code_b64, verify_totp
 from app.core.ratelimit import check_rate_limit, client_ip
+from app.core.permissions import is_access_expired
 from app.models import User
 from app.models.jwt_revocation import JwtRevocation
 from app.schemas.auth import (
@@ -45,6 +46,10 @@ def login(body: LoginRequest, request: Request, db: Session = Depends(get_db)):
         raise HTTPException(status_code=401, detail="Email ou mot de passe incorrect")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Compte désactivé")
+
+    # Vérification expiration d'accès (RBAC)
+    if is_access_expired(user):
+        raise HTTPException(status_code=401, detail="Accès expiré")
 
     # MFA: if enabled, return a temporary MFA token (3 min expiry)
     if user.totp_enabled:

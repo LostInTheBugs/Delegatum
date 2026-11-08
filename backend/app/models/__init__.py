@@ -1,4 +1,4 @@
-from app.models.user import User, UserRole, DelegueStatus, DelegueRole
+from app.models.user import User, UserRole, AccountType, DelegueStatus, DelegueRole
 from app.models.organization import Organization
 from app.models.invitation import Invitation
 from app.models.minute import Minute, MinuteSection, MinutePublication, MinuteStatus, SectionVisibility
@@ -16,7 +16,7 @@ from app.models.jwt_revocation import JwtRevocation
 from app.models.update_config import UpdateConfig
 
 __all__ = [
-    "User", "UserRole", "DelegueStatus", "DelegueRole", "Organization", "Invitation",
+    "User", "UserRole", "AccountType", "DelegueStatus", "DelegueRole", "Organization", "Invitation",
     "Minute", "MinuteSection", "MinutePublication", "MinuteStatus", "SectionVisibility",
     "VaultKey",
     "EmailConfig", "EmailOutbox", "MinuteShareLink", "TransportMode", "EmailEventType", "EmailStatus",
@@ -29,4 +29,5 @@ __all__ = [
     "SafetyRegisterEntry", "SafetyRegisterEvent", "SafetyRegisterSeal",
     "JwtRevocation",
     "UpdateConfig",
+    "PermissionMatrix",
 ]

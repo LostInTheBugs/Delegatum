@@ -5,6 +5,7 @@ from app.core.config import assert_secret_key_is_set, assert_instance_profile_va
 from app.core.database import init_db
 from app.core.version import VERSION
 from app.routes import auth, organization, meeting, time_entry, minute, vault, email, share, consultation, workforce_stat, annual_report, delegate_activity, notice, compliance, election, legal  # noqa: F401
+from app.routes import permissions
 from app.routes.updates import router as updates_router, allowed_router as updates_allowed_router
 
 # Garde de sécurité : refuse le démarrage si SD_SECRET_KEY est absente,
@@ -62,6 +63,7 @@ app.include_router(election.router)
 app.include_router(legal.router)
 app.include_router(updates_router)
 app.include_router(updates_allowed_router)
+app.include_router(permissions.router)
 
 
 @app.on_event("startup")

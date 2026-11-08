@@ -18,7 +18,7 @@ from app.core.security import (
 )
 from app.core.captcha import validate_captcha
 from app.core.ratelimit import check_rate_limit, client_ip
-from app.models import User, UserRole, Organization, Invitation, DelegueStatus, DelegueRole
+from app.models import User, UserRole, Organization, Invitation, DelegueStatus, DelegueRole, AccountType
 from app.models.vault_key import VaultKey
 from app.schemas.auth import (
     RegisterRequest,
@@ -59,6 +59,8 @@ def _invitation_to_response(inv: Invitation) -> dict:
         "is_used": inv.is_used,
         "created_at": inv.created_at.isoformat() if inv.created_at else None,
         "organization_name": inv.organization.name if inv.organization else None,
+        "account_type": inv.account_type.value if inv.account_type else "delegation",
+        "access_expires_at": inv.access_expires_at.isoformat() if inv.access_expires_at else None,
     }
 
 
@@ -154,6 +156,8 @@ def join_organization(body: RegisterRequest, request: Request, db: Session = Dep
         organization_id=invitation.organization_id,
         is_delegue_securite_sante=invitation.is_delegue_securite_sante,
         is_delegue_egalite=invitation.is_delegue_egalite,
+        account_type=invitation.account_type,
+        access_expires_at=invitation.access_expires_at,
     )
     db.add(user)
     db.flush()  # get user.id before commit
@@ -199,6 +203,8 @@ def create_invitation(
         db, current_user, body.email, body.first_name, body.last_name,
         body.delegue_status, body.delegue_role,
         body.is_delegue_securite_sante, body.is_delegue_egalite,
+        body.account_type,
+        datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None,
         hash_fn=hash_invitation_code,
     )
     db.flush()  # get invitation.id
@@ -256,6 +262,8 @@ def _build_invitation(
     email: str, first_name: str, last_name: str,
     delegue_status: str, delegue_role: str,
     is_delegue_securite_sante: bool, is_delegue_egalite: bool,
+    account_type: str = "delegation",
+    access_expires_at: datetime | None = None,
     hash_fn=hash_invitation_code,
 ) -> tuple[Invitation, str]:
     """Create the Invitation row + plaintext code (shown once).
@@ -278,6 +286,8 @@ def _build_invitation(
         created_by_id=current_user.id,
         organization_id=current_user.organization_id,
         expires_at=datetime.now() + timedelta(days=30),
+        account_type=AccountType(account_type),
+        access_expires_at=access_expires_at,
     )
     db.add(invitation)
     return invitation, plaintext_code
