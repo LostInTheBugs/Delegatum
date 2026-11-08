@@ -7,8 +7,8 @@ All notable changes to this project are documented in this file.
 ### 🔒 RBAC — Droits d'accès basés sur les rôles
 - **Matrice rôles × modules** (Paramètres → Droits d'accès) : niveau `Aucun / Lecture / Écriture` par org/role/module. L'administrateur a toujours l'écriture. Bouton « Rétablir les valeurs par défaut » qui réinjecte les permissions du profil (`default_permissions`).
 - **Types de compte** : `delegation`, `salarie_designe` (salarié désigné pour activités), `rh` (service RH), `itm` (inspecteur), `police`. Les comptes extérieurs sont nominatifs, expiration obligatoire, lecture au maximum, jamais meetings/PV.
-- **Expiration des accès** : `access_expires_at` vérifié à chaque requête ; compte expiré → 403. Rôles extérieurs : expiration forcée, jamais réinitialisable.
-- **Migration Alembic `20260801_0021`** : table `role_permissions` (PermissionMatrix), initialisation automatique via `init_default_permissions`.
+- **Expiration des accès** : `access_expires_at` vérifié à chaque requête ; compte expiré → 401. Rôles extérieurs : expiration forcée, jamais réinitialisable.
+- **Migration Alembic `20261108_0021_rbac`** : table `role_permissions` (PermissionMatrix), initialisation automatique via `init_default_permissions`.
 - **Instances délégué seul** (`sst`, `egalite`, `egalite,sst`) : le créateur est délégué + admin (pas de président) ; en `egalite,sst` il choisit son domaine ; délégation invitée en lecture par défaut.
 - **Invitations extérieures** : compte nominatif avec `account_type`, expiration obligatoire, révocation immédiate.
 - **Page Droits d'accès** : matrice éditable dans Paramètres.
