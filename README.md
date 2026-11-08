@@ -134,12 +134,14 @@ In a delegate-only profile (`sst`, `egalite`, or `sst,egalite`), the following m
 
 ## Security
 
-- 🔑 **JWT signing key guard**: startup is refused when `SD_SECRET_KEY` is missing, shorter than 32 characters, or equal to a known example value — a deployment forgetting its `.env` cannot silently run with forgeable tokens.
-- 🔐 **JWT revocation**: every token carries a unique `jti` and the account's security version. `POST /api/auth/logout` revokes the current token; `POST /api/auth/revoke-user/{id}` (admin) and member removal revoke **all** tokens of a user immediately — no more 24h grace period for compromised or removed accounts.
-- 🗳️ **Structural ballot anonymity**: votes are stored as aggregated per-candidate counters only (`election_vote_tallies`) — no per-voter row exists, so a ballot can never be correlated to a choice, even with full read access to the database (secret ballot, L.413-5).
-- 🛡️ **Rate limiting cannot be bypassed by forged headers**: nginx overwrites `X-Forwarded-For` with the direct peer address (client-supplied values are dropped); `CF-Connecting-IP` is preferred when present (behind Cloudflare). Residual limitation: behind Traefik the rate-limit is per entry point, not per end-user IP.
-- 🧯 **App-level rate limiting is in-memory, per process**: counters reset on restart and are not shared across workers (the default deployment runs a single uvicorn worker). Treat it as defence-in-depth alongside the Traefik/Cloudflare layer — documented in [THREAT-MODEL.md](THREAT-MODEL.md#5-known-limitations-deliberate-documented).
 - 🔒 **Passwords**: bcrypt directly (no unmaintained passlib), passwords over 72 bytes rejected explicitly (no silent bcrypt truncation), Argon2id for invitation codes.
+- 🔑 **JWT signing key guard**: startup is refused when `SD_SECRET_KEY` is missing, shorter than 32 characters, or equal to a known example value — a deployment forgetting its `.env` cannot silently run with forgeable tokens.
+
+## Access rights (RBAC)
+
+- **Role × module matrix** (Settings → Access rights): `None / Read / Write` per org/role/module. The administrator always has `Write`. Button to restore defaults.
+- **External accounts** (designated employee, HR, ITM, police): named accounts, mandatory expiration date, maximum read access, never meetings/minutes; invited by the administrator, president or DSS. Expiration can be changed; revocation is immediate.
+- **Delegate-only instances** (`sst`, `egalite`, `sst,egalite`): the creator becomes delegate + administrator (no president); in `egalite,sst` the delegate chooses their domain; invited delegates have read-only access by default.
 
 ## Data protection (GDPR)
 
