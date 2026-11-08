@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_module
+from app.core.deps import get_current_user, require_access
 from app.models import User, UserRole
 from app.models.email import MinuteShareLink
 from app.models.minute import Minute, SectionVisibility
@@ -98,7 +98,7 @@ def get_link_content(token: str, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/{token}/revoke", dependencies=[Depends(require_module("meetings"))])
+@router.post("/{token}/revoke", dependencies=[Depends(require_access("meetings"))])
 def revoke_link(
     token: str,
     current_user: User = Depends(get_current_user),

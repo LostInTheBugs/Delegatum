@@ -80,11 +80,18 @@ def get_permissions(
                 # admin → toujours write, non lisible depuis la matrice
                 matrix[role][module] = "write"
             else:
-                # Recréer un user temporaire pour calculer effective_level
+                # Simuler un user du rôle concerné pour effective_level
+                # Les rôles extérieurs doivent avoir le account_type correspondant
+                # afin que les règles dures (max=read, meetings=none) s'appliquent
+                exterior_types = {"salarie_designe", "rh", "itm", "police"}
+                if role in exterior_types:
+                    acct = AccountType(role)
+                else:
+                    acct = AccountType.delegation
                 from unittest.mock import MagicMock
                 mock_user = MagicMock()
                 mock_user.role = "member"
-                mock_user.account_type = AccountType.delegation
+                mock_user.account_type = acct
                 mock_user.organization_id = current_user.organization_id
                 mock_user.delegue_role = None
                 mock_user.is_delegue_securite_sante = False
@@ -166,7 +173,7 @@ def update_permissions(
                         status_code=422,
                         detail=f"Le rôle {role_key} ne peut pas avoir write",
                     )
-                if module in EXTERIOR_FORBIDDEN_MODULES:
+                if module in EXTERIOR_FORBIDDEN_MODULES and level != "none":
                     raise HTTPException(
                         status_code=422,
                         detail=f"Le module {module} est toujours none pour {role_key}",

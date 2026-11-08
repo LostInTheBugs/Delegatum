@@ -15,7 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_module
+from app.core.deps import get_current_user, require_access
 from app.models import (
     User, Organization, Election, ElectionStatus, ElectionCandidate,
     ElectionBallot, ElectionVoteTally,
@@ -26,7 +26,7 @@ from app.schemas.election import (
     ElectionResultList,
 )
 
-router = APIRouter(prefix="/api", tags=["elections"], dependencies=[Depends(require_module("elections"))])
+router = APIRouter(prefix="/api", tags=["elections"], dependencies=[Depends(require_access("elections"))])
 
 MIN_AGE_DAYS = 18 * 365.25
 MIN_SENIORITY_DAYS = 12 * 30.44  # 12 mois

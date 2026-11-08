@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_access
 from app.core.security import (
     hash_password, create_access_token,
     generate_invitation_code, hash_invitation_code, hash_invitation_code_batch,
@@ -177,7 +177,7 @@ def join_organization(body: RegisterRequest, request: Request, db: Session = Dep
     return TokenResponse(access_token=token)
 
 
-@router.post("/invitations", response_model=CreateInvitationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/invitations", response_model=CreateInvitationResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_access("members"))])
 def create_invitation(
     body: CreateInvitationRequest,
     request: Request,
@@ -293,7 +293,7 @@ def _build_invitation(
     return invitation, plaintext_code
 
 
-@router.post("/invitations/batch", response_model=BatchInviteResponse)
+@router.post("/invitations/batch", response_model=BatchInviteResponse, dependencies=[Depends(require_access("members"))])
 def create_invitations_batch(
     body: BatchInviteRequest,
     request: Request,
@@ -382,7 +382,7 @@ def create_invitations_batch(
     return {"results": results, "created": created, "skipped": skipped, "failed": failed}
 
 
-@router.delete("/organization/members/{user_id}")
+@router.delete("/organization/members/{user_id}", dependencies=[Depends(require_access("members"))])
 def remove_member(
     user_id: int,
     current_user: User = Depends(get_current_user),
@@ -449,7 +449,7 @@ def _queue_invite_email(
         background_tasks.add_task(send_ready_smtp, db, invitation.organization_id)
 
 
-@router.put("/organization", response_model=OrganizationResponse)
+@router.put("/organization", response_model=OrganizationResponse, dependencies=[Depends(require_access("members"))])
 def update_organization(
     body: UpdateOrganizationRequest,
     current_user: User = Depends(get_current_user),
@@ -457,6 +457,8 @@ def update_organization(
 ):
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=403, detail="Réservé aux comptes de délégation")
 
     org = current_user.organization
     if body.name is not None:
@@ -518,7 +520,7 @@ def get_modules(current_user: User = Depends(get_current_user)):
     }
 
 
-@router.put("/organization/modules", response_model=OrganizationResponse)
+@router.put("/organization/modules", response_model=OrganizationResponse, dependencies=[Depends(require_access("members"))])
 def update_modules(
     body: ModulesUpdate,
     current_user: User = Depends(get_current_user),
@@ -529,6 +531,8 @@ def update_modules(
     from app.core.modules import ALL_MODULES, instance_modules
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=403, detail="Réservé aux comptes de délégation")
     unknown = [m for m in body.modules if m not in ALL_MODULES]
     if unknown:
         raise HTTPException(status_code=422, detail=f"Modules inconnus : {', '.join(unknown)}")
@@ -555,7 +559,7 @@ class LogoUpdate(BaseModel):
     logo_data: str  # data URL : "data:image/png;base64,..."
 
 
-@router.put("/organization/logo", response_model=OrganizationResponse)
+@router.put("/organization/logo", response_model=OrganizationResponse, dependencies=[Depends(require_access("members"))])
 def update_logo(
     body: LogoUpdate,
     current_user: User = Depends(get_current_user),
@@ -564,6 +568,8 @@ def update_logo(
     """Enregistre le logo de l'entreprise (admin). Data URL ≤ 512 Ko."""
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=403, detail="Réservé aux comptes de délégation")
     data = body.logo_data.strip()
     if not data.startswith("data:image/"):
         raise HTTPException(status_code=422, detail="Format invalide : data URL d'image attendue (data:image/png;base64,...)")
@@ -576,13 +582,15 @@ def update_logo(
     return OrganizationResponse.model_validate(org)
 
 
-@router.delete("/organization/logo", response_model=OrganizationResponse)
+@router.delete("/organization/logo", response_model=OrganizationResponse, dependencies=[Depends(require_access("members"))])
 def delete_logo(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=403, detail="Réservé aux comptes de délégation")
     org = current_user.organization
     org.logo_data = None
     db.commit()
@@ -623,7 +631,7 @@ def list_invitations(
     return [_invitation_to_response(inv) for inv in invitations]
 
 
-@router.get("/organization/members", response_model=list[UserResponse])
+@router.get("/organization/members", response_model=list[UserResponse], dependencies=[Depends(require_access("members"))])
 def list_members(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -636,7 +644,7 @@ def list_members(
     return [UserResponse.model_validate(m) for m in members]
 
 
-@router.put("/organization/members/{user_id}/role")
+@router.put("/organization/members/{user_id}/role", dependencies=[Depends(require_access("members"))])
 def change_member_role(
     user_id: int,
     body: dict,  # {"role": "admin" | "member"}
@@ -656,7 +664,7 @@ def change_member_role(
     return UserResponse.model_validate(target)
 
 
-@router.put("/organization/members/{user_id}/delegue-role")
+@router.put("/organization/members/{user_id}/delegue-role", dependencies=[Depends(require_access("members"))])
 def change_delegue_role(
     user_id: int,
     body: dict,  # {"delegue_role": "president"|"vice_president"|"secretaire"|"membre"}

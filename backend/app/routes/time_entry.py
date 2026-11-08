@@ -7,12 +7,12 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_module
-from app.models import User
+from app.core.deps import get_current_user, require_access
+from app.models import User, TimeEntry
 from app.models.time_entry import TimeEntry
 from sqlalchemy.sql import func
 
-router = APIRouter(prefix="/api/time", tags=["time"], dependencies=[Depends(require_module("time_tracking"))])
+router = APIRouter(prefix="/api/time", tags=["time"], dependencies=[Depends(require_access("time_tracking"))])
 
 BUREAU_ROLES = {"president", "vice_president", "secretaire"}
 
