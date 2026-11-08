@@ -61,7 +61,7 @@ Nur ein **Instanzadministrator** kann Updates anfragen oder anwenden. Die Instan
 
 Einstellungen werden in der Datenbank gespeichert und sind über den **🔄 Updates**-Link in der Navigationsleiste erreichbar (sichtbar nur für Instanzadministratoren):
 
-- **Check-Kadenz** (6 h / 12 h / 24 h / 2 Tage / wöchentlich; 1 h Standard) — die Hintergrund-Schleife prüft GitHub in diesem Intervall.
+- **Check-Kadenz** (nie / 1 h (Standard) / 6 h / 12 h / 24 h / wöchentlich) — die Hintergrund-Schleife prüft GitHub in diesem Intervall.
 - **Auto-apply** — standardmäßig aus; wenn an, hinterlegt die Anwendung eine Apply-Anfrage, sobald eine neue Version erkannt wird (niemals während eines laufenden Jobs).
 - **🔎 Jetzt prüfen** — einmaliger Check unabhängig von der Kadenz.
 

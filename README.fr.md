@@ -49,6 +49,7 @@ Le module d'auto-mise-à-jour permet au serveur d'appliquer automatiquement les 
 - **Accès** : seuls les administrateurs d'instance peuvent demander/appliquer (liste `SD_INSTANCE_ADMIN_EMAILS` ou admin mono-organisation).
 - **Sauvegarde** : avant chaque mise-à-jour, copie automatique de la base `.db` en `*.db.pre-<version>` ; 3 dernières conservées.
 - **Garde no-build** : `SD_UPDATE_NO_BUILD=1` refuse la construction d'images sur petits serveurs.
+- **Cadence de vérification** : jamais / 1 h (par défaut) / 6 h / 12 h / 24 h / 1 semaine.
 - **Installation** : copiez `deploy/delegatum-update.service` et `.timer` dans `/etc/systemd/system/`, éditez `WorkingDirectory` et `User`, puis `systemctl enable --now delegatum-update.timer`.
 
 ## Documentation

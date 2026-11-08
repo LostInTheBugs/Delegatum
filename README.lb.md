@@ -61,7 +61,7 @@ Nur en **Instanzadministrator** kann Updates ufroen oder uwenden. D'Instanz-Admi
 
 Astellungen ginn an der Datebank gespäichert an si iwwer de **🔄 Updates**-Link an der Navigatiounsläsch erreechbar (nëmmen fir Instanzadministratoren siichtbar):
 
-- **Check-Kadenz** (6 h / 12 h / 24 h / 2 Deeg / wöchentlech; 1 h Standard) — den Hannergrond-Lëss prüft GitHub an dësem Intervall.
+- **Check-Kadenz** (ni / 1 h (Standard) / 6 h / 12 h / 24 h / wochentlech) — den Hannergrond-Lëss prüft GitHub an dësem Intervall.
 - **Auto-apply** — standardméisseg aus; wann un, ënnerleet d'App eng Apply-Ufro soulaang eng nei Versioun erkannt gëtt (ni wärend engem lafende Job).
 - **🔎 Elo prüfen** — eenmolge Check onofhängeg vun der Kadenz.
 

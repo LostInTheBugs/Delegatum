@@ -167,7 +167,7 @@ Only an **instance administrator** can request or apply updates. Instance admin 
 
 Settings are stored in the database, accessible from the **🔄 Mises à jour / Updates** link in the navigation bar (visible only to instance administrators):
 
-- **Check cadence** (6 h / 12 h / 24 h / 2 days / weekly; 1 h default) — the background loop queries GitHub at this interval.
+- **Check cadence** (never / 1 h (default) / 6 h / 12 h / 24 h / weekly) — the background loop queries GitHub at this interval.
 - **Auto-apply** — off by default; when on, the app deposits an apply request as soon as a new version is detected (never during a running job).
 - **🔎 Check now** — one-shot check regardless of cadence.
 
