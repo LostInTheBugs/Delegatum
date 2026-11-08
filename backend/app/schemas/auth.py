@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator
 
 
@@ -148,6 +149,7 @@ class UserResponse(BaseModel):
     delegue_role: str
     role: str
     account_type: str = "delegation"
+    access_expires_at: datetime | None = None
     totp_enabled: bool = False
     is_delegue_securite_sante: bool = False
     is_delegue_egalite: bool = False

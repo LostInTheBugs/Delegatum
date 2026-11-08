@@ -814,6 +814,17 @@ def get_public_org(slug: str, db: Session = Depends(get_db)):
     return PublicOrgResponse(name=org.name, company_name=org.company_name, logo_data=org.logo_data)
 
 
+@router.get("/instance")
+def get_instance_info():
+    """Profil et domaines de l'instance (public, sans auth)."""
+    from app.core.config import get_settings
+    from app.core.modules import instance_domains, _parse_profile
+    return {
+        "profile": _parse_profile(get_settings().instance_profile),
+        "domains": sorted(instance_domains()),
+    }
+
+
 @router.get("/invitations", response_model=list[InvitationResponse])
 def list_invitations(
     current_user: User = Depends(get_current_user),

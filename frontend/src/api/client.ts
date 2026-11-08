@@ -149,6 +149,10 @@ export function removeMember(userId: number): Promise<{ id: number; removed: boo
   return request(`/organization/members/${userId}`, { method: 'DELETE' })
 }
 
+export function updateMemberAccess(userId: number, data: { access_expires_at: string | null }): Promise<{ id: number; access_expires_at: string | null }> {
+  return request(`/organization/members/${userId}/access`, { method: 'PUT', body: JSON.stringify(data) })
+}
+
 export interface PermissionMatrixResponse {
   roles: string[]
   modules: string[]
@@ -802,6 +806,21 @@ export type { VaultStatusResponse, VaultKeyResponse, VaultEnvelope }
 
 export { b64Encode, b64Decode }
 export type { Section, MinuteResponse, DirectionPreview }
+
+// ── Instance info (public) ──────────────────────────────────────────
+
+export interface InstanceInfo {
+  profile: string
+  domains: string[]
+}
+
+export function getInstanceInfo(): Promise<InstanceInfo> {
+  // Public endpoint: no auth, no token ever
+  return fetch('/api/instance').then(r => {
+    if (!r.ok) return Promise.reject(new Error(`Erreur ${r.status} ${r.statusText}`))
+    return r.json()
+  })
+}
 
 // ── Self-Update (admin) ──────────────────────────────────────────────
 
