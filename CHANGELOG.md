@@ -2,6 +2,10 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.11.003-c1] — 2026-11-08
+
+- **correctif migration** : `20261108_0021_rbac` rendue idempotente (inspecteur SQLAlchemy) — `create_all()` au démarrage ne provoque plus d'erreur sur colonnes/tables dupliquées.
+
 ## [2026.11.003] — 2026-11-08
 
 ### 🔒 RBAC — Droits d'accès basés sur les rôles
