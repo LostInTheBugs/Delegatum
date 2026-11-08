@@ -159,15 +159,61 @@ def create_organization(body: CreateOrganizationRequest, request: Request, db: S
     db.add(org)
     db.flush()
 
+    # ── Profil délégué : le créateur EST le délégué ─────────────────
+    # En profil délégué, pas de « président » : le créateur est le
+    # délégué (rôle=membre) + admin. `admin_delegue_role` est ignoré.
+
+    from app.core.config import get_settings
+    from app.core.modules import instance_domains, _parse_profile
+
+    instance_profile = _parse_profile(get_settings().instance_profile)
+    parsed = set(instance_profile.split(","))
+
+    # ── Calculer les attributs du délégué avant construction ─────────
+    if "sst" in parsed and "egalite" in parsed:
+        # Profil combiné : admin_domain obligatoire
+        domain = body.admin_domain or "securite_sante"
+        allowed_domains = instance_domains()
+        if domain not in allowed_domains:
+            raise HTTPException(
+                status_code=400,
+                detail=f"admin_domain inconnu pour ce profil : {domain} (attendu un des domaines : {', '.join(sorted(allowed_domains))})",
+            )
+        delegue_role = "membre"
+        is_dss = domain == "securite_sante"
+        is_deg = domain == "egalite"
+    elif "sst" in parsed:
+        delegue_role = "membre"
+        is_dss = True
+        is_deg = False
+        if body.admin_domain:
+            raise HTTPException(status_code=400, detail="admin_domain interdit pour le profil sst")
+    elif "egalite" in parsed:
+        delegue_role = "membre"
+        is_dss = False
+        is_deg = True
+        if body.admin_domain:
+            raise HTTPException(status_code=400, detail="admin_domain interdit pour le profil egalite")
+    else:
+        # Profil dp : admin_delegue_role respecté
+        delegue_role = body.admin_delegue_role
+        is_dss = False
+        is_deg = False
+        if body.admin_domain:
+            raise HTTPException(status_code=400, detail="admin_domain interdit pour le profil dp")
+
+    # ── Crée l'utilisateur admin ─────────────────────────────────────
     admin = User(
         email=normalize_email(body.admin_email),
         password_hash=hash_password(body.admin_password),
         first_name=body.admin_first_name,
         last_name=body.admin_last_name,
         delegue_status=DelegueStatus(body.admin_delegue_status),
-        delegue_role=DelegueRole(body.admin_delegue_role),
+        delegue_role=DelegueRole(delegue_role),
         role=UserRole.admin,
         organization_id=org.id,
+        is_delegue_securite_sante=is_dss,
+        is_delegue_egalite=is_deg,
     )
     db.add(admin)
     db.commit()
@@ -421,7 +467,6 @@ def create_invitations_batch(
         email = normalize_email(item.email)
         first_name = item.first_name.strip()
         last_name = item.last_name.strip()
-        account_type = item.account_type or "salarie_designe"
 
         # Doublon dans le même lot
         if email in seen_emails:
@@ -447,22 +492,14 @@ def create_invitations_batch(
             skipped += 1
             continue
 
-        is_ext = _is_exterior_account(account_type)
-        if is_ext:
-            invitation, plaintext_code = _build_external_invitation(
-                db, current_user, email, first_name, last_name,
-                account_type,
-                datetime.fromisoformat(item.access_expires_at) if item.access_expires_at else None,
-                hash_fn=hash_invitation_code_batch,
-            )
-        else:
-            invitation, plaintext_code = _build_invitation(
-                db, current_user, email, first_name, last_name,
-                DelegueStatus.employe.value, DelegueRole.membre.value,
-                False, False,
-                account_type,
-                hash_fn=hash_invitation_code_batch,
-            )
+        # Invitation en masse : compte de délégation toujours, salariés non-élus
+        invitation, plaintext_code = _build_invitation(
+            db, current_user, email, first_name, last_name,
+            DelegueStatus.employe.value, DelegueRole.membre.value,
+            False, False,
+            "delegation",
+            hash_fn=hash_invitation_code_batch,
+        )
         db.flush()  # get invitation.id
         _queue_invite_email(db, request, background_tasks, invitation, plaintext_code)
 

@@ -66,6 +66,8 @@ class CreateOrganizationRequest(BaseModel):
     admin_last_name: str
     admin_delegue_status: str = "titulaire"
     admin_delegue_role: str = "president"
+    admin_domain: str | None = None  # Profil délégué combiné (egalite,sst) :
+    # "securite_sante" (défaut) ou "egalite" ; refusé sinon
     captcha_id: str
     captcha_answer: str
 
@@ -228,7 +230,11 @@ class CreateInvitationResponse(InvitationResponse):
 # ── Batch invitations ──────────────────────────────────────────────
 
 class BatchInviteItem(BaseModel):
-    """One line of a mass invitation import (plain employee by default)."""
+    """One line of a mass invitation import (plain employee by default).
+
+    Mass invitations are for non-elected employees of the delegation only.
+    External access is granted solely through individual invitations.
+    """
     email: EmailStr
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
@@ -263,3 +269,8 @@ class BatchInviteResponse(BaseModel):
     created: int
     skipped: int
     failed: int
+
+
+class UpdateMemberAccessRequest(BaseModel):
+    """Update or remove the access expiry date for a member."""
+    access_expires_at: str | None = Field(default=None, description="ISO 8601 expiry date. null = permanent access. Past date = immediate revocation.")

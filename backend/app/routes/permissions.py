@@ -15,10 +15,10 @@ from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.modules import ALL_MODULES, instance_modules
 from app.core.permissions import (
-    DEFAULT_PERMISSIONS,
     AccessLevel,
     EXTERIOR_FORBIDDEN_MODULES,
     PermissionMatrix,
+    default_permissions,
     effective_level,
     init_default_permissions,
     role_keys,
@@ -68,8 +68,16 @@ def get_permissions(
     instance_mods = instance_modules()
     modules = sorted(set(instance_mods) | {"members"})
 
+    from app.core.config import get_settings
+    try:
+        settings = get_settings()
+        org_profile = settings.instance_profile
+    except RuntimeError:
+        org_profile = "dp"
+    current_defaults = default_permissions(org_profile)
+
     # Rôles connus (sans admin)
-    roles = sorted(set(DEFAULT_PERMISSIONS.keys()) | {"admin"})
+    roles = sorted(set(current_defaults.keys()) | {"admin"})
 
     # Matrice effective (rôle × module)
     matrix: dict[str, dict[str, str]] = {}
@@ -104,7 +112,7 @@ def get_permissions(
         "roles": roles,
         "modules": modules,
         "matrix": matrix,
-        "defaults": {k: dict(v) for k, v in DEFAULT_PERMISSIONS.items()},
+        "defaults": {k: dict(v) for k, v in current_defaults.items()},
     }
 
 

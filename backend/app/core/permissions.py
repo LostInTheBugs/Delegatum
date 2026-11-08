@@ -35,42 +35,90 @@ class AccessLevel(str, enum.Enum):
     write = "write"
 
 
-# ── Valeurs par défaut ─────────────────────────────────────────────
+# ── Valeurs par défaut adaptatives selon le profil d'instance ───────
 
-# Tous les rôles de délégation ont write partout (comportement actuel).
+# Tous les rôles de délégation ont write partout (comportement dp actuel).
 # Les contrôles fins existants dans les routes continuent de limiter.
 # `members` est ajouté à tous les rôles internes : sans lui l'organigramme
 # serait inaccessible aux non-admins (règle R2).
 _INTERNAL_WRITE_MODULES = set(ALL_MODULES) | {"members"}
-DEFAULT_PERMISSIONS: dict[str, dict[str, str]] = {
-    "delegue": {m: AccessLevel.write.value for m in _INTERNAL_WRITE_MODULES},
-    "bureau": {m: AccessLevel.write.value for m in _INTERNAL_WRITE_MODULES},
-    "president": {m: AccessLevel.write.value for m in _INTERNAL_WRITE_MODULES},
-    "dss": {m: AccessLevel.write.value for m in _INTERNAL_WRITE_MODULES},
-    "deg": {m: AccessLevel.write.value for m in _INTERNAL_WRITE_MODULES},
-    "salarie": {m: AccessLevel.write.value for m in _INTERNAL_WRITE_MODULES},
-    # Salarié désigné : lecture sécurité + activités
-    "salarie_designe": {
-        "safety_register": AccessLevel.read.value,
-        "delegate_activities": AccessLevel.read.value,
-    },
-    # RH : lecture sécurité + activités + stats
-    "rh": {
-        "safety_register": AccessLevel.read.value,
-        "delegate_activities": AccessLevel.read.value,
-        "workforce_stats": AccessLevel.read.value,
-    },
-    # ITM : lecture sécurité + conformité + activités
-    "itm": {
-        "safety_register": AccessLevel.read.value,
-        "compliance": AccessLevel.read.value,
-        "delegate_activities": AccessLevel.read.value,
-    },
-    # Police : lecture sécurité uniquement
-    "police": {
-        "safety_register": AccessLevel.read.value,
-    },
-}
+
+
+def _internal_write_modules() -> dict[str, str]:
+    return {m: AccessLevel.write.value for m in _INTERNAL_WRITE_MODULES}
+
+
+def _exterior_defaults() -> dict[str, dict[str, str]]:
+    """Permissions pour les rôles extérieurs (inchangées)."""
+    return {
+        # Salarié désigné : lecture sécurité + activités
+        "salarie_designe": {
+            "safety_register": AccessLevel.read.value,
+            "delegate_activities": AccessLevel.read.value,
+        },
+        # RH : lecture sécurité + activités + stats
+        "rh": {
+            "safety_register": AccessLevel.read.value,
+            "delegate_activities": AccessLevel.read.value,
+            "workforce_stats": AccessLevel.read.value,
+        },
+        # ITM : lecture sécurité + conformité + activités
+        "itm": {
+            "safety_register": AccessLevel.read.value,
+            "compliance": AccessLevel.read.value,
+            "delegate_activities": AccessLevel.read.value,
+        },
+        # Police : lecture sécurité uniquement
+        "police": {
+            "safety_register": AccessLevel.read.value,
+        },
+    }
+
+
+def default_permissions(instance_profile: str = "dp") -> dict[str, dict[str, str]]:
+    """Retourne la matrice de permissions selon le profil d'instance.
+
+    En `dp` : write partout pour les rôles internes (comportement actuel).
+    En profil délégué : les rôles internes n'ont que `read` (+ `members`),
+    `dss`/`deg` conservent `write` dans leur domaine respectif.
+    """
+    parsed = {p.strip() for p in instance_profile.split(",")} if instance_profile else {"dp"}
+
+    if instance_profile == "dp":
+        # Comportement classique : write partout pour les internes
+        return {
+            "delegue": _internal_write_modules(),
+            "bureau": _internal_write_modules(),
+            "president": _internal_write_modules(),
+            "dss": _internal_write_modules(),
+            "deg": _internal_write_modules(),
+            "salarie": _internal_write_modules(),
+            **_exterior_defaults(),
+        }
+
+    # Profil délégué : lecture seule pour les internes
+    internal_read = {m: AccessLevel.read.value for m in _INTERNAL_WRITE_MODULES}
+    result: dict[str, dict[str, str]] = {
+        "delegue": internal_read.copy(),
+        "bureau": internal_read.copy(),
+        "president": internal_read.copy(),
+        "salarie": internal_read.copy(),
+    }
+
+    # DSS : write si sst dans le profil
+    if "sst" in parsed:
+        result["dss"] = _internal_write_modules()
+
+    # DEG : write si egalite dans le profil
+    if "egalite" in parsed:
+        result["deg"] = _internal_write_modules()
+
+    result.update(_exterior_defaults())
+    return result
+
+
+# Alias pour la rétro-compatibilité (tests qui importent DEFAULT_PERMISSIONS)
+DEFAULT_PERMISSIONS = default_permissions("dp")
 
 # Modules toujours `none` pour les rôles extérieurs (règle dure)
 EXTERIOR_FORBIDDEN_MODULES = {"meetings"}
@@ -213,8 +261,14 @@ def effective_level(user, module: str, db: Session) -> str:
             elif level.value == AccessLevel.read.value and best.value != AccessLevel.write.value:
                 best = AccessLevel.read
         else:
-            # Fallback sur les défauts
-            defaults = DEFAULT_PERMISSIONS.get(key, {})
+            # Fallback sur les défauts (adaptatif selon profil d'instance)
+            from app.core.config import get_settings
+            try:
+                settings = get_settings()
+                org_profile = settings.instance_profile
+            except RuntimeError:
+                org_profile = "dp"
+            defaults = default_permissions(org_profile).get(key, {})
             if module in defaults:
                 level = AccessLevel(defaults[module])
                 if level.value == AccessLevel.write.value:
@@ -239,7 +293,14 @@ def init_default_permissions(org_id: int, db: Session) -> None:
     instance_mods = instance_modules()
     modules_to_use = set(instance_mods) | {"members"}
 
-    for role_key, modules in DEFAULT_PERMISSIONS.items():
+    from app.core.config import get_settings
+    try:
+        settings = get_settings()
+        org_profile = settings.instance_profile
+    except RuntimeError:
+        org_profile = "dp"
+
+    for role_key, modules in default_permissions(org_profile).items():
         for module in modules_to_use:
             existing = db.query(PermissionMatrix).filter(
                 PermissionMatrix.organization_id == org_id,
