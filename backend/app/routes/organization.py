@@ -10,6 +10,7 @@ from sqlalchemy import or_
 
 from app.core.database import get_db
 from app.core.deps import get_current_user, require_access
+from app.core.permissions import role_keys
 from app.core.security import (
     hash_password, create_access_token,
     generate_invitation_code, hash_invitation_code, hash_invitation_code_batch,
@@ -34,6 +35,7 @@ from app.schemas.auth import (
     BatchInviteItem,
     BatchInviteRequest,
     BatchInviteResponse,
+    UpdateMemberAccessRequest,
 )
 
 router = APIRouter(prefix="/api", tags=["organization"])
@@ -62,6 +64,72 @@ def _invitation_to_response(inv: Invitation) -> dict:
         "account_type": inv.account_type.value if inv.account_type else "delegation",
         "access_expires_at": inv.access_expires_at.isoformat() if inv.access_expires_at else None,
     }
+
+
+EXTERIOR_ACCOUNT_TYPES = frozenset({"salarie_designe", "rh", "itm", "police"})
+
+
+def _is_exterior_account(account_type: str) -> bool:
+    return account_type != "delegation"
+
+
+def _can_manage_external(current_user) -> bool:
+    """True si le user est admin, président ou DSS."""
+    if current_user.role.value == "admin":
+        return True
+    keys = role_keys(current_user)
+    return "president" in keys or "dss" in keys
+
+
+def _validate_external_invitation(body) -> None:
+    """Vérifications propres aux comptes extérieurs :
+    - forcer delegue_status=employe, delegue_role=membre
+    - refuser is_delegue_securite_sante / is_delegue_egalite à vrai
+    - refuser vault_envelope
+    - access_expires_at (si donné) doit être dans le futur
+    """
+    if body.is_delegue_securite_sante:
+        raise HTTPException(status_code=400, detail="Les comptes extérieurs ne peuvent pas être DSS")
+    if body.is_delegue_egalite:
+        raise HTTPException(status_code=400, detail="Les comptes extérieurs ne peuvent pas être délégués à l'égalité")
+    if body.vault_envelope:
+        raise HTTPException(status_code=400, detail="Les comptes extérieurs ne peuvent pas accéder au coffre")
+    if body.access_expires_at:
+        expires = datetime.fromisoformat(body.access_expires_at)
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        if expires <= now:
+            raise HTTPException(status_code=400, detail="La date d'expiration doit être dans le futur")
+
+
+def _build_external_invitation(
+    db: Session, current_user: User,
+    email: str, first_name: str, last_name: str,
+    account_type: str,
+    access_expires_at: datetime | None = None,
+    hash_fn=hash_invitation_code,
+) -> tuple[Invitation, str]:
+    """Build invitation for an external account — forces employe/membre."""
+    plaintext_code = generate_invitation_code()
+    code_hash = hash_fn(plaintext_code)
+    invitation = Invitation(
+        code_hash=code_hash,
+        email=normalize_email(email),
+        first_name=first_name,
+        last_name=last_name,
+        delegue_status=DelegueStatus.employe,
+        delegue_role=DelegueRole.membre,
+        is_delegue_securite_sante=False,
+        is_delegue_egalite=False,
+        created_by_id=current_user.id,
+        organization_id=current_user.organization_id,
+        expires_at=datetime.now() + timedelta(days=30),
+        account_type=AccountType(account_type),
+        access_expires_at=access_expires_at,
+    )
+    db.add(invitation)
+    return invitation, plaintext_code
 
 
 @router.post("/organizations", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -185,37 +253,57 @@ def create_invitation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role != UserRole.admin:
-        raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    is_ext = _is_exterior_account(body.account_type)
 
-    # Vérifier que les champs désignés sont dans le profil d'instance
-    from app.core.modules import instance_domains
-    domains = instance_domains()
-    if body.is_delegue_securite_sante and "securite_sante" not in domains:
-        raise HTTPException(status_code=400, detail="La désignation sécurité-santé est hors profil d'instance")
-    if body.is_delegue_egalite and "egalite" not in domains:
-        raise HTTPException(status_code=400, detail="La désignation égalité est hors profil d'instance")
+    if current_user.role == UserRole.admin:
+        # Admin : toutes les règles existantes s'appliquent
+        from app.core.modules import instance_domains
+        domains = instance_domains()
+        if body.is_delegue_securite_sante and "securite_sante" not in domains:
+            raise HTTPException(status_code=400, detail="La désignation sécurité-santé est hors profil d'instance")
+        if body.is_delegue_egalite and "egalite" not in domains:
+            raise HTTPException(status_code=400, detail="La désignation égalité est hors profil d'instance")
+        _validate_invitation_fields(body.delegue_status, body.delegue_role,
+                                    body.is_delegue_securite_sante, body.is_delegue_egalite)
+        if is_ext:
+            _validate_external_invitation(body)
+            invitation, plaintext_code = _build_external_invitation(
+                db, current_user, body.email, body.first_name, body.last_name,
+                body.account_type,
+                datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None,
+            )
+        else:
+            invitation, plaintext_code = _build_invitation(
+                db, current_user, body.email, body.first_name, body.last_name,
+                body.delegue_status, body.delegue_role,
+                body.is_delegue_securite_sante, body.is_delegue_egalite,
+                body.account_type,
+                datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None,
+                hash_fn=hash_invitation_code,
+            )
+    else:
+        # Non-admin : président ou DSS uniquement pour comptes extérieurs
+        if not _can_manage_external(current_user):
+            raise HTTPException(status_code=403, detail="Seuls l'administrateur, le président et le délégué sécurité-santé peuvent créer des accès extérieurs")
+        if not is_ext:
+            raise HTTPException(status_code=403, detail="Seuls les comptes extérieurs (RH, ITM, police, salarié désigné) sont autorisés")
+        if body.account_type not in EXTERIOR_ACCOUNT_TYPES:
+            raise HTTPException(status_code=400, detail=f"account_type invalide pour un accès extérieur : {body.account_type}")
+        _validate_external_invitation(body)
+        invitation, plaintext_code = _build_external_invitation(
+            db, current_user, body.email, body.first_name, body.last_name,
+            body.account_type,
+            datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None,
+        )
 
-    _validate_invitation_fields(body.delegue_status, body.delegue_role,
-                                body.is_delegue_securite_sante, body.is_delegue_egalite)
-
-    invitation, plaintext_code = _build_invitation(
-        db, current_user, body.email, body.first_name, body.last_name,
-        body.delegue_status, body.delegue_role,
-        body.is_delegue_securite_sante, body.is_delegue_egalite,
-        body.account_type,
-        datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None,
-        hash_fn=hash_invitation_code,
-    )
     db.flush()  # get invitation.id
 
-    # Vault invitation envelope: if the org has a vault and the inviter
-    # (who holds the DEK) sent an envelope wrapped under the invitation code,
-    # store it in vault_keys with invitation_id set.
-    if body.vault_envelope:
-        _store_invitation_vault_envelope(
-            db, body.vault_envelope, invitation, current_user
-        )
+    if not is_ext:
+        # Vault invitation envelope (uniquement pour comptes internes)
+        if body.vault_envelope:
+            _store_invitation_vault_envelope(
+                db, body.vault_envelope, invitation, current_user
+            )
 
     db.commit()
     db.refresh(invitation)
@@ -333,6 +421,7 @@ def create_invitations_batch(
         email = normalize_email(item.email)
         first_name = item.first_name.strip()
         last_name = item.last_name.strip()
+        account_type = item.account_type or "salarie_designe"
 
         # Doublon dans le même lot
         if email in seen_emails:
@@ -358,12 +447,22 @@ def create_invitations_batch(
             skipped += 1
             continue
 
-        invitation, plaintext_code = _build_invitation(
-            db, current_user, email, first_name, last_name,
-            DelegueStatus.employe.value, DelegueRole.membre.value,
-            False, False,
-            hash_fn=hash_invitation_code_batch,
-        )
+        is_ext = _is_exterior_account(account_type)
+        if is_ext:
+            invitation, plaintext_code = _build_external_invitation(
+                db, current_user, email, first_name, last_name,
+                account_type,
+                datetime.fromisoformat(item.access_expires_at) if item.access_expires_at else None,
+                hash_fn=hash_invitation_code_batch,
+            )
+        else:
+            invitation, plaintext_code = _build_invitation(
+                db, current_user, email, first_name, last_name,
+                DelegueStatus.employe.value, DelegueRole.membre.value,
+                False, False,
+                account_type,
+                hash_fn=hash_invitation_code_batch,
+            )
         db.flush()  # get invitation.id
         _queue_invite_email(db, request, background_tasks, invitation, plaintext_code)
 
@@ -393,9 +492,11 @@ def remove_member(
     Le compte reste en base (les références historiques — PV, heures,
     réunions — restent valides), mais le login et l'API sont bloqués et le
     membre disparaît des listes. C'est le pattern is_active déjà en place.
+
+    Le président et le délégué sécurité-santé peuvent aussi retirer un
+    compte extérieur (ex: ITM, RH, police).
     """
-    if current_user.role != UserRole.admin:
-        raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    is_admin = current_user.role == UserRole.admin
 
     target = db.query(User).filter(
         User.id == user_id,
@@ -407,6 +508,13 @@ def remove_member(
         raise HTTPException(status_code=400, detail="Impossible de retirer votre propre compte")
     if not target.is_active:
         return {"id": target.id, "removed": False}
+
+    # Non-admin (président/DSS) : autorisé uniquement pour un compte extérieur
+    if not is_admin:
+        if not _can_manage_external(current_user):
+            raise HTTPException(status_code=403, detail="Réservé à l'administrateur, au président ou au délégué sécurité-santé")
+        if target.account_type == AccountType.delegation:
+            raise HTTPException(status_code=403, detail="Seul l'administrateur peut gérer un compte interne")
 
     # Garde défensive : ne jamais laisser l'org sans administrateur
     if target.role == UserRole.admin:
@@ -424,6 +532,59 @@ def remove_member(
     target.token_version = (target.token_version or 0) + 1
     db.commit()
     return {"id": target.id, "removed": True}
+
+
+@router.put("/organization/members/{user_id}/access", dependencies=[Depends(require_access("members"))])
+def update_member_access(
+    user_id: int,
+    body: UpdateMemberAccessRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Modifier ou supprimer la date d'expiration d'un accès extérieur.
+
+    Admin, président ou DSS : modifie access_expires_at d'un membre.
+    Date passée = révocation immédiate ; None = accès permanent ;
+    date future = nouvelle date d'expiration.
+    """
+    is_admin = current_user.role == UserRole.admin
+
+    target = db.query(User).filter(
+        User.id == user_id,
+        User.organization_id == current_user.organization_id,
+    ).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="Membre introuvable")
+
+    # Non-admin (président/DSS) : autorisé uniquement pour un compte extérieur
+    if not is_admin:
+        if not _can_manage_external(current_user):
+            raise HTTPException(status_code=403, detail="Réservé à l'administrateur, au président ou au délégué sécurité-santé")
+        if target.account_type == AccountType.delegation:
+            raise HTTPException(status_code=403, detail="Seul l'administrateur peut gérer un compte interne")
+
+    # Date fournie : vérifier qu'elle est dans le futur (sauf None ou date passée = révocation)
+    if body.access_expires_at is not None:
+        expires = datetime.fromisoformat(body.access_expires_at)
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        # Date dans le passé = révocation immédiate (ok)
+        # Date dans le futur = nouvelle expiration (ok)
+
+    target.access_expires_at = datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None
+    # Si la nouvelle date est dans le passé, révoquer immédiatement (token_version seulement — l'expiration gère déjà le blocage)
+    if target.access_expires_at is not None:
+        if target.access_expires_at <= datetime.now(timezone.utc):
+            target.token_version = (target.token_version or 0) + 1
+    db.commit()
+    db.refresh(target)
+    return {
+        "id": target.id,
+        "email": target.email,
+        "access_expires_at": target.access_expires_at.isoformat() if target.access_expires_at else None,
+        "is_active": target.is_active,
+    }
 
 
 def _queue_invite_email(
