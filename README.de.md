@@ -27,13 +27,26 @@ Kopieren Sie `.env.example` nach `.env` und passen Sie die Variablen an:
 | `SD_DATABASE_URL` | Datenbank-URL (überschreibbar — SQLite-Standard, PostgreSQL unterstützt) | `sqlite:///./data/staff_delegation.db` |
 | `SD_INSTANCE_PROFILE` | Instanzprofil — beschränkt verfügbare Module | `dp` (alle Module) |
 | `SD_ACCESS_TOKEN_EXPIRE_MINUTES` | JWT-Token-Verfallszeit | `1440` (24 h) |
-| `SD_INSTANCE_ADMIN_EMAILS` | Kommagetrennte Liste der als Instanzadministratoren autorisierten E-Mail-Adressen (siehe Updateën); leer lassen für Single-Organisation Admin-Fallback | — |
+| `SD_INSTANCE_ADMIN_EMAILS` | Kommagetrennte Liste der als Instanzadministratoren autorisierten E-Mail-Adressen (siehe Updates); leer lassen für Single-Organisation Admin-Fallback | — |
 | `SD_UPDATE_NO_BUILD` | `1` auf kleinen Servern, um den Bau von Docker-Images zu verweigern — deployed vorbereitete Images | `0` (Build erlaubt) |
 | `SD_UPDATE_LOOP` | `0` zur Deaktivierung der Hintergrund-Check-Schleife (der 🔎-Check in der Admin-Oberfläche funktioniert weiterhin) | `1` (Schleife aktiv) |
 
 Der Port kann über die Umgebungsvariable `SD_PORT` in allen Kontexten (Docker, lokale Entwicklung) überschrieben werden. Alle Konfigurationsdateien referenzieren standardmäßig Port 8005.
 
-## Updateën
+## Instanzprofil
+
+`SD_INSTANCE_PROFILE` beschränkt die verfügbaren Module beim Start (die Anwendung verweigert den Start mit einem ungültigen Wert). Gültige Werte:
+
+| Profil | Verfügbare Module |
+|--------|-------------------|
+| `dp` (Standard) | Alle Module — vollständiges DP-Funktionsumfang |
+| `sst` | Dashboard, Domänenaktivitäten (nur Sicherheit/Gesundheit), Stunden, Schulung/ Schutz, Sicherheitsregister (falls `sst`) |
+| `egalite` | Dashboard, Domänenaktivitäten (nur Gleichstellung), Stunden, Schulung/ Schutz |
+| `sst,egalite` | Dashboard, Domänenaktivitäten (beide), Stunden, Schulung/ Schutz, Sicherheitsregister (falls `sst`) |
+
+Im Delegierten-nur-Profil (`sst`, `egalite` oder `sst,egalite`) sind folgende Module ausgeblendet: Sitzungen/Protokolle/Tresor/Archiv, Wahlen, Konsultationen, Statistiken, Anschlagbrett, Compliance, Kontakt. Die verbleibenden Funktionen sind: Dashboard, Aktivitäten der Profil-domain(en), Stunden, Schulung/Schutz, und Sicherheitsregister (nur wenn `sst`).
+
+## Aktualisierungen
 
 Automatisches Update für delegierte Verwaltung — die Anwendung prüft auf neue Versionen und hinterlegt bei Verfügbarkeit eine Anforderungsdatei; ein systemd-Dienst (Timer + Skript) im Host wendet das Update an, indem er das Release-Tarball zieht, den Code rsynced, Docker-Images neu baut und Alembic-Migrationen ausführt. Der App-Container **berührt niemals** Docker — eine bewusste Sicherheitsgrenze.
 
@@ -42,11 +55,11 @@ Automatisches Update für delegierte Verwaltung — die Anwendung prüft auf neu
 Nur ein **Instanzadministrator** kann Updates anfragen oder anwenden. Die Instanz-Admin-Zugehörigkeit wird wie folgt bestimmt:
 
 1. **`SD_INSTANCE_ADMIN_EMAILS`** (kommagetrennte Liste) — wenn gesetzt, sind nur die aufgeführten E-Mail-Adressen autorisiert.
-2. **Fallback** — wenn `SD_INSTANCE_ADMIN_EMAILS` leer ist, ist der erste Administrator einer **Single-Organisation**-Instanz autorisiert. Multi-Organisation-Instanzen ohne `SD_INSTANCE_ADMIN_EMAILS` sperren den Update-Zugriff (403).
+2. **Fallback** — wenn `SD_INSTANCE_ADMIN_EMAILS` leer ist, ist jeder Administrator-Benutzer einer **Single-Organisation**-Instanz autorisiert. Multi-Organisation-Instanzen ohne `SD_INSTANCE_ADMIN_EMAILS` sperren den Update-Zugriff (403).
 
 ### Konfiguration
 
-Einstellungen werden in der Datenbank gespeichert und sind über **Einstellungen → Verwaltung → Updates** in der App erreichbar:
+Einstellungen werden in der Datenbank gespeichert und sind über den **🔄 Updates**-Link in der Navigationsleiste erreichbar (sichtbar nur für Instanzadministratoren):
 
 - **Check-Kadenz** (6 h / 12 h / 24 h / 2 Tage / wöchentlich; 1 h Standard) — die Hintergrund-Schleife prüft GitHub in diesem Intervall.
 - **Auto-apply** — standardmäßig aus; wenn an, hinterlegt die Anwendung eine Apply-Anfrage, sobald eine neue Version erkannt wird (niemals während eines laufenden Jobs).

@@ -25,28 +25,41 @@ Kopéiert `.env.example` op `.env` an passt d'Variabelen un:
 | `SD_PORT` | Backend-Listenport | `8005` |
 | `SD_SECRET_KEY` | JWT-Signéierschlëssel — **erfuerderlech** (d'App verweigert den Start mat engem Beispillwärt oder engem Schlëssel méi wéi 32 Zeechen; docker-compose feel, wann net gesat) | — |
 | `SD_DATABASE_URL` | Datebank-URL (iwwerschreifbar — SQLite Standard, PostgreSQL ënnerstëtzt) | `sqlite:///./data/staff_delegation.db` |
-| `SD_INSTANCE_PROFILE` | Instanzprofil — beschränkt verfügbaren Module | `dp` (all Module) |
+| `SD_INSTANCE_PROFILE` | Instanzprofil — beschränkt disponibel Module | `dp` (all Module) |
 | `SD_ACCESS_TOKEN_EXPIRE_MINUTES` | JWT-Token-Verfallszäit | `1440` (24 h) |
-| `SD_INSTANCE_ADMIN_EMAILS` | Komma-getrennte Lëscht vun E-Mail-Adressen, déi als Instanzadministratoren autoriséiert sinn (kuckt Updateën); eidel loosse fir Single-Organisation Admin-Fallback | — |
+| `SD_INSTANCE_ADMIN_EMAILS` | Komma-getrennt Lëscht vun E-Mail-Adressen, déi als Instanzadministratoren autoriséiert sinn (kuckt Updates); eidel loosse fir Single-Organisation Admin-Fallback | — |
 | `SD_UPDATE_NO_BUILD` | `1` op klenge Serveren, fir de Bau vu Docker-Images ze verweigeren — deployed virbereetete Images | `0` (Build erlaabt) |
-| `SD_UPDATE_LOOP` | `0` fir den Hintergrund-Check-Lëss ze deaktivéieren (den 🔎-Check am Admin-Panel funktionnéiert weider) | `1` (Lëss aktiv) |
+| `SD_UPDATE_LOOP` | `0` fir den Hannergrond-Check-Lëss ze deaktivéieren (den 🔎-Check am Admin-Panel funktionnéiert weider) | `1` (Lëss aktiv) |
 
 De Port kann iwwer d'Ëmgebungsvariabel `SD_PORT` an alle Kontexter (Docker, lokal Entwécklung) iwwerschriwwe ginn. All Konfiguratiounsdateien referenzéieren Standardméisseg Port 8005.
 
-## Updateën
+## Instanzprofil
 
-Automateschen Update fir delegéiert Verwaltung — d'App prüft op nei Versiounen an ënnerleet wann verfügbar eng Ufrodatei; en systemd-Däischter (Timer + Skript) um Host wend den Update un, andeems en de Release-Tarball zitt, de Code rsynced, Docker-Images nei baut an Alembic-Migratiounen ausféiert. De App-Container **riiert ni** Docker un — eng bewosst Sécherheetsgrenz.
+`SD_INSTANCE_PROFILE` beschränkt disponibel Module beim Start (d'App verweigeret den Start mat engem ongültegen Wäert). Gëlteg Wäerter:
+
+| Profil | Disponibel Module |
+|--------|-------------------|
+| `dp` (Standard) | All Module — komplette DP-Funktionsumfang |
+| `sst` | Dashboard, Domän-Aktivitéiten (nëmmen Sécherheet/Gesondheet), Stonnen, Formatioun/Schutz, Sécherheetsregister (wann `sst`) |
+| `egalite` | Dashboard, Domän-Aktivitéiten (nëmmen Gläichstellung), Stonnen, Formatioun/Schutz |
+| `sst,egalite` | Dashboard, Domän-Aktivitéiten (bäid), Stonnen, Formatioun/Schutz, Sécherheetsregister (wann `sst`) |
+
+Am Nëmme-Delegéierte-Profil (`sst`, `egalite` oder `sst,egalite`) si folgend Module verstoppt: Sëtzungen/Protokoller/Coffre/Archiv, Wahlen, Konsultatiounen, Statistiken, Ukënnegungstafel, Compliance, Kontakt. Déi bleiwen Funktiounen si: Dashboard, Aktivitéite vun der/en Profil-domän(en), Stonnen, Formatioun/Schutz, an Sécherheetsregister (nëmmen wann `sst`).
+
+## Aktualiséierongen
+
+Automateschen Update fir delegéiert Verwaltung — d'App prüft op nei Versiounen an ënnerleet wann disponibel eng Ufrodatei; en systemd-Déngscht (Timer + Skript) um Host wend den Update un, andeems en de Release-Tarball zitt, de Code rsynced, Docker-Images nei baut an Alembic-Migratiounen ausféiert. De App-Container **riiert ni** Docker un — eng bewosst Sécherheetsgrenz.
 
 ### Zougankskontroll
 
 Nur en **Instanzadministrator** kann Updates ufroen oder uwenden. D'Instanz-Admin-Zougehéieregkeet gëtt wéi follegt bestëmmt:
 
 1. **`SD_INSTANCE_ADMIN_EMAILS`** (komma-getrennt Lëscht) — wann gesat, si nëmmen déi opgelëscht E-Mail-Adressen autoriséiert.
-2. **Fallback** — wann `SD_INSTANCE_ADMIN_EMAILS` eidel ass, ass den éischte Administrator vun enger **Single-Organisation**-Instanz autoriséiert. Multi-Organisation-Instanze ouni `SD_INSTANCE_ADMIN_EMAILS` sperren den Update-Zougang (403).
+2. **Fallback** — wann `SD_INSTANCE_ADMIN_EMAILS` eidel ass, ass jiddwer Administrator-Benutzer vun enger **Single-Organisation**-Instanz autoriséiert. Multi-Organisation-Instanze ouni `SD_INSTANCE_ADMIN_EMAILS` sperren den Update-Zougang (403).
 
 ### Konfiguratioun
 
-Astellungen ginn an der Datebank gespäichert an si iwwer **Astellungen → Verwaltung → Updates** an der App erreechbar:
+Astellungen ginn an der Datebank gespäichert an si iwwer de **🔄 Updates**-Link an der Navigatiounsläsch erreechbar (nëmmen fir Instanzadministratoren siichtbar):
 
 - **Check-Kadenz** (6 h / 12 h / 24 h / 2 Deeg / wöchentlech; 1 h Standard) — den Hannergrond-Lëss prüft GitHub an dësem Intervall.
 - **Auto-apply** — standardméisseg aus; wann un, ënnerleet d'App eng Apply-Ufro soulaang eng nei Versioun erkannt gëtt (ni wärend engem lafende Job).

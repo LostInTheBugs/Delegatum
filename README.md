@@ -41,7 +41,7 @@ Current version: **2026.11.002-c1** — [See GitHub releases](https://github.com
 - 🏷️ **Company logo**: upload your organisation's logo (PNG/JPG/SVG, ≤ 512 KB) — displayed in the header of every page and on the login screen (type the organisation identifier shown in My organisation)
 - 📇 **Contact page**: the delegation's contact details (email, phone, office hours — editable by the administrator) plus the bureau, visible to all staff
 - 👤 **My profile**: photo, language, password change, MFA
-- 🖥️ **Desktop application (Windows / macOS)**: self-contained builds (no server, no installer) — unzip `Delegatum-Windows.zip` (double-click `Delegatum.exe`) or `Delegatum-macOS.zip` (double-click `Delegatum.app`; first launch: right-click → Open); data stays in a `data/` folder next to the app (macOS fallback: `~/Library/Application Support/Delegatum`); exports use a native “Save as” dialog; user guides in FR/EN/DE/LB (attached to each release)
+- 🖥️ **Desktop application (Windows / macOS)**: self-contained builds (no server, no installer) — unzip `Delegatum-Windows.zip` (double-click `Delegatum.exe`) or `Delegatum-macOS.zip` (double-click `Delegatum.app`; first launch: right-click → Open); data stays in a `data/` folder next to the app (macOS fallback: `~/Library/Application Support/Delegatum`); exports use a native "Save as" dialog; user guides in FR/EN/DE/LB (attached to each release)
 
 ## Demo
 
@@ -111,13 +111,26 @@ Copy `.env.example` to `.env` and adjust the variables:
 | `SD_PORT` | Backend listen port | `8005` |
 | `SD_SECRET_KEY` | JWT signing key — **required** (the app refuses to start with an example value or a key shorter than 32 chars; docker-compose fails fast if unset) | — |
 | `SD_DATABASE_URL` | Database URL (overridable — SQLite default, PostgreSQL supported) | `sqlite:///./data/staff_delegation.db` |
-| `SD_INSTANCE_PROFILE` | Instance profile — restricts available modules | `dp` (all modules) |
+| `SD_INSTANCE_PROFILE` | Instance profile — restricts available modules (see below) | `dp` (all modules) |
 | `SD_ACCESS_TOKEN_EXPIRE_MINUTES` | JWT token expiration | `1440` (24h) |
 | `SD_INSTANCE_ADMIN_EMAILS` | Comma-separated list of email addresses authorised as instance administrators (see Updates below); leave empty for single-org admin fallback | — |
 | `SD_UPDATE_NO_BUILD` | `1` on small servers to refuse building images on the host — deploy images built elsewhere | `0` (build allowed) |
 | `SD_UPDATE_LOOP` | `0` to disable the background update-check loop (the admin panel's 🔎 Check still works) | `1` (loop active) |
 
 The port can be overridden via the `SD_PORT` environment variable in all contexts (Docker, local development). All configuration files reference port 8005 by default.
+
+## Instance profile
+
+`SD_INSTANCE_PROFILE` restricts which modules are available at startup (the backend refuses to start with an invalid value). Valid values:
+
+| Profile | Available modules |
+|---------|-------------------|
+| `dp` (default) | All modules — full staff delegation feature set |
+| `sst` | Dashboard, domain activities (sécurité/santé only), hours, training/protection, safety & health register (if `sst`) |
+| `egalite` | Dashboard, domain activities (égalité only), hours, training/protection |
+| `sst,egalite` | Dashboard, domain activities (both), hours, training/protection, safety & health register (if `sst`) |
+
+In a delegate-only profile (`sst`, `egalite`, or `sst,egalite`), the following modules are hidden: meetings, minutes (PV), vault, archive, elections, consultations, statistics, display, compliance, contact. The remaining features are: dashboard, activities of the profile domain(s), hours, training/protection, and safety & health register (only when `sst`).
 
 ## Security
 
@@ -148,11 +161,11 @@ Self-update for delegated administration — the app checks for new versions and
 Only an **instance administrator** can request or apply updates. Instance admin is determined by:
 
 1. **`SD_INSTANCE_ADMIN_EMAILS`** (comma-separated list) — if set, only listed emails are authorised.
-2. **Fallback** — if `SD_INSTANCE_ADMIN_EMAILS` is empty, the first admin of a **single-organisation** instance is authorised. Multi-org instances without `SD_INSTANCE_ADMIN_EMAILS` block update access (403).
+2. **Fallback** — if `SD_INSTANCE_ADMIN_EMAILS` is empty, any admin user of a **single-organisation** instance is authorised. Multi-org instances without `SD_INSTANCE_ADMIN_EMAILS` block update access (403).
 
 ### Configuration
 
-Settings are stored in the database, accessible from **Settings → Administration → Updates** in the app:
+Settings are stored in the database, accessible from the **🔄 Mises à jour / Updates** link in the navigation bar (visible only to instance administrators):
 
 - **Check cadence** (6 h / 12 h / 24 h / 2 days / weekly; 1 h default) — the background loop queries GitHub at this interval.
 - **Auto-apply** — off by default; when on, the app deposits an apply request as soon as a new version is detected (never during a running job).

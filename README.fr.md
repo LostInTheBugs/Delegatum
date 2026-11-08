@@ -18,14 +18,33 @@ Outil de gestion pour les **délégations du personnel** au Luxembourg (Code du 
 
 ## Configuration
 
-- `SD_INSTANCE_PROFILE` : profil d'instance — restreint les modules disponibles (`dp` = tous, `sst`, `egalite`, ou `egalite,sst`). Défaut : `dp`.
-- `SD_INSTANCE_ADMIN_EMAILS` : liste d'adresses e-mail séparées par des virgules autorisées comme administrateurs d'instance (voir Mises à jour) ; laissez vide pour le fallback admin mono-organisation.
-- `SD_UPDATE_NO_BUILD` : `1` sur les petits serveurs pour refuser la reconstruction des images Docker — déployez des images construites ailleurs. Défaut : `0`.
-- `SD_UPDATE_LOOP` : `0` pour désactiver la boucle de vérification en arrière-plan (le bouton 🔎 Vérifier de l'admin fonctionne toujours). Défaut : `1`.
+| Variable | Description | Défaut |
+|----------|-------------|--------|
+| `SD_PORT` | Port d'écoute du backend | `8005` |
+| `SD_SECRET_KEY` | Clé de signature JWT — **requise** (l'app refuse de démarrer avec une valeur par défaut ou une clé < 32 caractères) | — |
+| `SD_DATABASE_URL` | URL de la base (SQLite par défaut, PostgreSQL supporté) | `sqlite:///./data/staff_delegation.db` |
+| `SD_INSTANCE_PROFILE` | Profil d'instance — restreint les modules disponibles (`dp` = tous, `sst`, `egalite`, `sst,egalite`) | `dp` |
+| `SD_ACCESS_TOKEN_EXPIRE_MINUTES` | Durée de vie des tokens JWT | `1440` (24h) |
+| `SD_INSTANCE_ADMIN_EMAILS` | Adresses e-mail des administrateurs d'instance (voir Mises à jour) ; vide = fallback admin mono-organisation | — |
+| `SD_UPDATE_NO_BUILD` | `1` sur les petits serveurs pour refuser la reconstruction des images Docker | `0` |
+| `SD_UPDATE_LOOP` | `0` pour désactiver la boucle de vérification en arrière-plan (le bouton 🔎 Vérifier fonctionne toujours) | `1` |
+
+## Profil d'instance
+
+`SD_INSTANCE_PROFILE` restreint les modules disponibles au démarrage (l'app refuse de démarrer avec une valeur invalide). Valeurs valides :
+
+| Profil | Modules disponibles |
+|--------|---------------------|
+| `dp` (défaut) | Tous les modules — ensemble complet des fonctionnalités DP |
+| `sst` | Tableau de bord, activités du domaine (sécurité/santé uniquement), heures, formation/protection, registre S&S (si `sst`) |
+| `egalite` | Tableau de bord, activités du domaine (égalité uniquement), heures, formation/protection |
+| `sst,egalite` | Tableau de bord, activités des deux domaines, heures, formation/protection, registre S&S (si `sst`) |
+
+En profil délégué seul (`sst`, `egalite` ou `sst,egalite`), les modules suivants sont masqués : réunions/PV/coffre/archive, élections, consultations, statistiques, affichage, conformité, contact. Les fonctionnalités restantes sont : tableau de bord, activités du ou des domaines du profil, heures, formation/protection, et registre S&S (uniquement si `sst`).
 
 ## Mises à jour
 
-Le module d'auto-mise-à jour permet au serveur d'appliquer automatiquement les nouvelles versions : le service vérifie les releases GitHub à la cadence configurée, dépose une demande de mise-à-jour, et un service systemd sur l'hôte tire le tarball, reconstruit les images, lance Alembic et redémarre les conteneurs. L'application ne touche **jamais** à Docker — une barrière de sécurité volontaire.
+Le module d'auto-mise-à-jour permet au serveur d'appliquer automatiquement les nouvelles versions : le service vérifie les releases GitHub à la cadence configurée, dépose une demande de mise-à-jour, et un service systemd sur l'hôte tire le tarball, reconstruit les images, lance Alembic et redémarre les conteneurs. L'application ne touche **jamais** à Docker — une barrière de sécurité volontaire.
 
 - **Accès** : seuls les administrateurs d'instance peuvent demander/appliquer (liste `SD_INSTANCE_ADMIN_EMAILS` ou admin mono-organisation).
 - **Sauvegarde** : avant chaque mise-à-jour, copie automatique de la base `.db` en `*.db.pre-<version>` ; 3 dernières conservées.
