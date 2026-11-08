@@ -42,6 +42,12 @@ Outil de gestion pour les **délégations du personnel** au Luxembourg (Code du 
 
 En profil délégué seul (`sst`, `egalite` ou `sst,egalite`), les modules suivants sont masqués : réunions/PV/coffre/archive, élections, consultations, statistiques, affichage, conformité, contact. Les fonctionnalités restantes sont : tableau de bord, activités du ou des domaines du profil, heures, formation/protection, et registre S&S (uniquement si `sst`).
 
+## Droits d'accès (RBAC)
+
+- **Matrice rôles × modules** (Paramètres → Droits d'accès) : `Aucun / Lecture / Écriture` par org/role/module. L'administrateur a toujours l'écriture. Bouton « Rétablir les valeurs par défaut ».
+- **Comptes extérieurs** (salarié désigné, service RH, ITM, police) : compte nominatif, date d'expiration obligatoire, lecture au maximum, jamais réunions/PV ; invités par l'administrateur, le président ou le DSS ; expiration modifiable, révocation immédiate.
+- **Instances délégué seul** (`sst`, `egalite`, `sst,egalite`) : le créateur est le délégué et l'administrateur (pas de président) ; en `egalite,sst` il choisit son domaine ; la délégation invitée est en lecture par défaut.
+
 ## Mises à jour
 
 Le module d'auto-mise-à-jour permet au serveur d'appliquer automatiquement les nouvelles versions : le service vérifie les releases GitHub à la cadence configurée, dépose une demande de mise-à-jour, et un service systemd sur l'hôte tire le tarball, reconstruit les images, lance Alembic et redémarre les conteneurs. L'application ne touche **jamais** à Docker — une barrière de sécurité volontaire.

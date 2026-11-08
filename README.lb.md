@@ -46,6 +46,12 @@ De Port kann iwwer d'Ëmgebungsvariabel `SD_PORT` an alle Kontexter (Docker, lok
 
 Am Nëmme-Delegéierte-Profil (`sst`, `egalite` oder `sst,egalite`) si folgend Module verstoppt: Sëtzungen/Protokoller/Coffre/Archiv, Wahlen, Konsultatiounen, Statistiken, Ukënnegungstafel, Compliance, Kontakt. Déi bleiwen Funktiounen si: Dashboard, Aktivitéite vun der/en Profil-domän(en), Stonnen, Formatioun/Schutz, an Sécherheetsregister (nëmmen wann `sst`).
 
+### Zougankskontroll (RBAC)
+
+- **Rollen × Moduler** (Astellungen → Zougankskontroll): `Keng / Liesen / Schreiwen` pro Organisaschoun/Roll/Modul. Deen Administrator huet ëmmer `Schreiwen`. Knëppel « Standardwäerter nees asetzen ».
+- **Extern Konten** (bestallte Salariéierten, HR, ITM, Policing): Namhafte Kont, obligatoreschen Oflafdatum, maximal Liesrecht, kee Sëtzungen/Protokoller; ageleeë vum Administrator, President oder DSS; Oflafdatum ännern, sofort Zréckzéien.
+- **Nëmme-Delegéiert-Instanzen** (`sst`, `egalite`, `sst,egalite`): de Schafenden gëtt Delegéierte + Administrator (kee President); an `egalite,sst` wielt en seng Domän; de Delegéierte deen ageleeë gëtt huet standardméisseg Liesrecht.
+
 ## Aktualiséierongen
 
 Automateschen Update fir delegéiert Verwaltung — d'App prüft op nei Versiounen an ënnerleet wann disponibel eng Ufrodatei; en systemd-Déngscht (Timer + Skript) um Host wend den Update un, andeems en de Release-Tarball zitt, de Code rsynced, Docker-Images nei baut an Alembic-Migratiounen ausféiert. De App-Container **riiert ni** Docker un — eng bewosst Sécherheetsgrenz.

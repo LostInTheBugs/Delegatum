@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_module
+from app.core.deps import get_current_user, require_access
 from app.models import User, Organization, Invitation
 from app.models.vault_key import VaultKey
 from app.schemas.vault import (
@@ -14,7 +14,7 @@ from app.schemas.vault import (
 )
 
 router = APIRouter(tags=["vault"],
-                   dependencies=[Depends(require_module("meetings"))])
+                   dependencies=[Depends(require_access("meetings"))])
 
 BUREAU_ROLES = {"president", "vice_president", "secretaire"}
 

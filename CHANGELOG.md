@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.11.003] — 2026-11-08
+
+### 🔒 RBAC — Droits d'accès basés sur les rôles
+- **Matrice rôles × modules** (Paramètres → Droits d'accès) : niveau `Aucun / Lecture / Écriture` par org/role/module. L'administrateur a toujours l'écriture. Bouton « Rétablir les valeurs par défaut » qui réinjecte les permissions du profil (`default_permissions`).
+- **Types de compte** : `delegation`, `salarie_designe` (salarié désigné pour activités), `rh` (service RH), `itm` (inspecteur), `police`. Les comptes extérieurs sont nominatifs, expiration obligatoire, lecture au maximum, jamais meetings/PV.
+- **Expiration des accès** : `access_expires_at` vérifié à chaque requête ; compte expiré → 403. Rôles extérieurs : expiration forcée, jamais réinitialisable.
+- **Migration Alembic `20260801_0021`** : table `role_permissions` (PermissionMatrix), initialisation automatique via `init_default_permissions`.
+- **Instances délégué seul** (`sst`, `egalite`, `egalite,sst`) : le créateur est délégué + admin (pas de président) ; en `egalite,sst` il choisit son domaine ; délégation invitée en lecture par défaut.
+- **Invitations extérieures** : compte nominatif avec `account_type`, expiration obligatoire, révocation immédiate.
+- **Page Droits d'accès** : matrice éditable dans Paramètres.
+- **`GET /api/instance`** (public) : retourne `profile` et `domains` (liste triée de domaines de délégués).
+
+## [2026.11.002-c4] — 2026-11-07
+
 ## [2026.11.001] — 2026-11-07
 
 ### 🧩 Instance profile — module filtering par déploiement
@@ -21,16 +35,6 @@ All notable changes to this project are documented in this file.
 - **tolérance frontend** : la page Updates utilise `?.` sur `state.applier` pour éviter le crash si un backend plus ancien ne renvoie pas `applier`.
 - **types TypeScript** : `UpdateApplier` aligné sur le schéma réel (nombres pour les timestamps, `string` pour `applied`/`result`/`running`).
 - **correctif build** : `formatDate` accepte désormais `number | string | null` pour les timestamps applier.
-
-## [2026.11.002-c3] — 2026-11-07
-
-- **correctif de version** : l'applicateur de mise à jour de bureau accepte désormais les versions correctives `-cN` sur Windows et macOS ; méta-donnée de version synchronisée dans `index.html`.
-
-## [2026.11.002-c1] — 2026-11-07
-
-- **correctif de l'applicateur** : suppression de `-f docker-compose.yml` dans toutes les commandes `docker compose` ; le script utilise désormais `cwd=APP_DIR` et s'appuie sur la découverte automatique de Compose (charge `docker-compose.override.yml` et `.env` du dossier, sans conflit de `container_name` ni de mauvais ports). Ajout d'un test garantissant qu'aucune commande construite ne contient `-f`.
-- **traduction lb** : « verfügbar » → « disponibel » dans `updates.update_available`.
-- **tests** : release simulée 2099 (`test_apply_update.py` : vérification `-f` ; `test_updates.py` : NEWER=2099.01.001).
 
 ## [2026.11.002] — 2026-11-07
 

@@ -1,3 +1,4 @@
+from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, computed_field, field_validator
 
 
@@ -66,6 +67,8 @@ class CreateOrganizationRequest(BaseModel):
     admin_last_name: str
     admin_delegue_status: str = "titulaire"
     admin_delegue_role: str = "president"
+    admin_domain: str | None = None  # Profil délégué combiné (egalite,sst) :
+    # "securite_sante" (défaut) ou "egalite" ; refusé sinon
     captcha_id: str
     captcha_answer: str
 
@@ -101,6 +104,10 @@ class CreateInvitationRequest(BaseModel):
     delegue_role: str = "membre"
     is_delegue_securite_sante: bool = False
     is_delegue_egalite: bool = False
+    # RBAC : type de compte (delegation ou extérieur)
+    account_type: str = "delegation"
+    # Date d'expiration optionnelle (NULL = permanent)
+    access_expires_at: str | None = None  # ISO format ; recopié à l'inscription
     # Optional vault envelope: if the org has a vault, the inviting member
     # (who holds the DEK) wraps it under a KEK derived from the invitation
     # code and sends this envelope. The server stores it in vault_keys
@@ -141,6 +148,8 @@ class UserResponse(BaseModel):
     delegue_status: str
     delegue_role: str
     role: str
+    account_type: str = "delegation"
+    access_expires_at: datetime | None = None
     totp_enabled: bool = False
     is_delegue_securite_sante: bool = False
     is_delegue_egalite: bool = False
@@ -207,6 +216,8 @@ class InvitationResponse(BaseModel):
     is_used: bool = False
     created_at: str | None = None
     organization_name: str | None = None
+    account_type: str = "delegation"
+    access_expires_at: str | None = None
 
     model_config = {"from_attributes": True}
 
@@ -222,7 +233,11 @@ class CreateInvitationResponse(InvitationResponse):
 # ── Batch invitations ──────────────────────────────────────────────
 
 class BatchInviteItem(BaseModel):
-    """One line of a mass invitation import (plain employee by default)."""
+    """One line of a mass invitation import (plain employee by default).
+
+    Mass invitations are for non-elected employees of the delegation only.
+    External access is granted solely through individual invitations.
+    """
     email: EmailStr
     first_name: str = Field(min_length=1, max_length=100)
     last_name: str = Field(min_length=1, max_length=100)
@@ -257,3 +272,8 @@ class BatchInviteResponse(BaseModel):
     created: int
     skipped: int
     failed: int
+
+
+class UpdateMemberAccessRequest(BaseModel):
+    """Update or remove the access expiry date for a member."""
+    access_expires_at: str | None = Field(default=None, description="ISO 8601 expiry date. null = permanent access. Past date = immediate revocation.")

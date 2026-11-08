@@ -6,6 +6,7 @@ import CreateOrganization from './pages/CreateOrganization'
 import Dashboard from './pages/Dashboard'
 import EditOrganization from './pages/EditOrganization'
 import AccountSettings from './pages/AccountSettings'
+import AccessRights from './pages/AccessRights'
 import Organigramme from './pages/Organigramme'
 import Meetings from './pages/Meetings'
 import TimeTracking from './pages/TimeTracking'
@@ -36,6 +37,7 @@ export default function App() {
       <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/organization" element={<ProtectedRoute><EditOrganization /></ProtectedRoute>} />
       <Route path="/settings" element={<ProtectedRoute><AccountSettings /></ProtectedRoute>} />
+      <Route path="/settings/access" element={<ProtectedRoute><AccessRights /></ProtectedRoute>} />
       <Route path="/organigramme" element={<ProtectedRoute><Organigramme /></ProtectedRoute>} />
       <Route path="/meetings" element={<ModuleRoute module="meetings"><Meetings /></ModuleRoute>} />
       <Route path="/hours" element={<ModuleRoute module="time_tracking"><TimeTracking /></ModuleRoute>} />

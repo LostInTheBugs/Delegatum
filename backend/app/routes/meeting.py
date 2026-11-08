@@ -2,7 +2,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request,
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_module
+from app.core.deps import get_current_user, require_access
 from app.models import User, UserRole
 from app.models.meeting import Meeting, MeetingPoint, MeetingInvitee, MeetingStatus, InviteeStatus
 from app.schemas.meeting import (
@@ -11,7 +11,7 @@ from app.schemas.meeting import (
 )
 
 router = APIRouter(prefix="/api/meetings", tags=["meetings"],
-                   dependencies=[Depends(require_module("meetings"))])
+                   dependencies=[Depends(require_access("meetings"))])
 
 
 def _meeting_to_response(m: Meeting) -> dict:

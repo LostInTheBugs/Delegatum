@@ -1,13 +1,18 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.modules import enabled_modules_of
+from app.core.permissions import effective_level, is_access_expired
 from app.core.security import decode_access_token
 from app.models import User, UserRole
 
 security = HTTPBearer()
+
+# Méthodes de lecture vs écriture pour la matrice RBAC
+_READ_METHODS = {"GET", "HEAD", "OPTIONS"}
+_WRITE_METHODS = {"POST", "PUT", "PATCH", "DELETE"}
 
 
 def require_module(module: str):
@@ -25,6 +30,45 @@ def require_module(module: str):
         org = db.query(Organization).filter(Organization.id == user.organization_id).first()
         if org is None or module not in enabled_modules_of(org.enabled_modules):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module désactivé")
+        return user
+
+    return _check
+
+
+def require_access(module: str):
+    """Dépendance RBAC : module actif + niveau d'accès selon méthode HTTP.
+
+    1. Vérifie que le module est activé pour l'organisation (403 « Module désactivé »).
+    2. Détermine le niveau requis : GET/HEAD → « read », POST/PUT/PATCH/DELETE → « write ».
+    3. Compare au niveau effectif de l'utilisateur via effective_level()
+       (403 « Droits insuffisants » si insuffisant).
+    """
+
+    def _check(request: Request, user: User = Depends(get_current_user),
+               db: Session = Depends(get_db)) -> User:
+        # 1. Module actif pour l'org (seulement si module dans ALL_MODULES)
+        #    "members" est un module du cœur, toujours actif — saut du check
+        if not user.organization_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module désactivé")
+        from app.core.modules import ALL_MODULES
+        if module in ALL_MODULES:
+            from app.models import Organization
+            org = db.query(Organization).filter(Organization.id == user.organization_id).first()
+            if org is None or module not in enabled_modules_of(org.enabled_modules):
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module désactivé")
+
+        # 2. Niveau requis selon la méthode HTTP
+        if request.method in _WRITE_METHODS:
+            required = "write"
+        else:
+            required = "read"
+
+        # 3. Comparaison avec le niveau effectif
+        current = effective_level(user, module, db)
+        level_order = {"none": 0, "read": 1, "write": 2}
+        if level_order.get(current, 0) < level_order.get(required, 0):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Droits insuffisants")
+
         return user
 
     return _check
@@ -53,6 +97,13 @@ def get_current_user(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Utilisateur non trouvé")
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Compte désactivé")
+
+    # Vérification expiration d'accès (RBAC)
+    if is_access_expired(user):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Accès expiré",
+        )
 
     # Révocation JWT (ANALYSE-2026-08-24 §7) :
     # 1. jti révoqué (logout ciblé) → 401 ;

@@ -19,9 +19,12 @@ export default function Dashboard() {
     email: '', first_name: '', last_name: '',
     delegue_status: 'titulaire', delegue_role: 'membre',
     is_delegue_securite_sante: false, is_delegue_egalite: false,
+    account_type: 'delegation', access_expires_at: '',
   })
   const [inviteError, setInviteError] = useState<string | null>(null)
   const [inviteLoading, setInviteLoading] = useState(false)
+  const [inviteType, setInviteType] = useState<'delegation' | 'external'>('delegation')
+  const [isDelegueUser, setIsDelegueUser] = useState(false)
 
   // One-time code display
   const [generatedCode, setGeneratedCode] = useState<string | null>(null)
@@ -30,6 +33,11 @@ export default function Dashboard() {
 
   // Active invitations list
   const [invitations, setInvitations] = useState<InvitationResponse[]>([])
+
+  // External member management
+  const [editingMemberId, setEditingMemberId] = useState<number | null>(null)
+  const [editDate, setEditDate] = useState('')
+  const [revokingMemberId, setRevokingMemberId] = useState<number | null>(null)
 
   // ── Invitation en masse ──
   const [batchText, setBatchText] = useState('')
@@ -98,12 +106,31 @@ export default function Dashboard() {
       return
     }
 
+    // Validate expiration for external accounts
+    if (inviteType === 'external' && !inviteForm.access_expires_at) {
+      setInviteError(t('dashboard.invite_expire_required'))
+      return
+    }
+
     setInviteLoading(true)
     try {
+      const invitePayload: any = {
+        email: inviteForm.email,
+        first_name: inviteForm.first_name,
+        last_name: inviteForm.last_name,
+        account_type: inviteType === 'delegation' ? 'delegation' : inviteForm.account_type,
+      }
+      if (inviteType === 'delegation') {
+        invitePayload.delegue_status = inviteForm.delegue_status
+        invitePayload.delegue_role = inviteForm.delegue_role
+        invitePayload.is_delegue_securite_sante = inviteForm.is_delegue_securite_sante
+        invitePayload.is_delegue_egalite = inviteForm.is_delegue_egalite
+      } else {
+        invitePayload.access_expires_at = inviteForm.access_expires_at
+      }
+
       // Step 1: Create invitation (without vault_envelope first — we need the code)
-      const result = await api.createInvitation({
-        ...inviteForm,
-      })
+      const result = await api.createInvitation(invitePayload)
 
       setGeneratedCode(groupCode(result.code))
       setCodeCopied(false)
@@ -295,6 +322,136 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {/* ── Gestion des accès extérieurs ── */}
+        {(user.role === 'admin' || user.delegue_role === 'president' || user.is_delegue_securite_sante) && (() => {
+          const externalMembers = members.filter((m: any) => m.account_type && m.account_type !== 'delegation')
+          if (externalMembers.length === 0) return null
+          return (
+            <div className="card mb-24">
+              <h2>🌐 {t('dashboard.external_access_title', 'Accès extérieurs')}</h2>
+              <p style={{ color: 'var(--gray-600)', fontSize: '.85rem', marginBottom: 12 }}>{t('dashboard.external_access_hint', 'Gestion des accès temporaires des membres externes')}</p>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.85rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid var(--gray-300)' }}>
+                    <th style={{ padding: '8px', textAlign: 'left' }}>{t('organigramme.member_name')}</th>
+                    <th style={{ padding: '8px', textAlign: 'left' }}>{t('dashboard.account_type')}</th>
+                    <th style={{ padding: '8px', textAlign: 'left' }}>{t('dashboard.member_expiration_date')}</th>
+                    <th style={{ padding: '8px', textAlign: 'right' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {externalMembers.map((m: any) => {
+                    const now = new Date()
+                    const exp = m.access_expires_at ? new Date(m.access_expires_at) : null
+                    const isExpired = exp ? exp <= now : false
+                    const isEditing = editingMemberId === m.id
+                    const isRevoking = revokingMemberId === m.id
+                    return (
+                      <tr key={m.id} style={{ borderBottom: '1px solid var(--gray-300)' }}>
+                        <td style={{ padding: '8px' }}>{m.first_name} {m.last_name}</td>
+                        <td style={{ padding: '8px' }}>
+                          <span style={{
+                            background: '#f3f4f6',
+                            color: 'var(--gray-700)',
+                            padding: '2px 10px',
+                            borderRadius: 4,
+                            fontWeight: 500,
+                            fontSize: '.8rem'
+                          }}>
+                            {t(`dashboard.account_type.${m.account_type}`) || m.account_type}
+                          </span>
+                        </td>
+                        <td style={{ padding: '8px' }}>
+                          {m.access_expires_at ? (
+                            <span style={{ color: isExpired ? 'var(--red)' : 'inherit', fontWeight: isExpired ? 700 : 400 }}>
+                              {m.access_expires_at.split('T')[0]}
+                              {isExpired && ` (${t('dashboard.expired')})`}
+                            </span>
+                          ) : (
+                            <span style={{ color: 'var(--gray-500)', fontStyle: 'italic' }}>—</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '8px', textAlign: 'right' }}>
+                          {isEditing ? (
+                            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                              <input
+                                type="date"
+                                value={editDate}
+                                onChange={e => setEditDate(e.target.value)}
+                                min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+                                style={{ padding: '4px 8px', borderRadius: 4, border: '1px solid var(--gray-300)', fontSize: '.85rem' }}
+                              />
+                              <button
+                                onClick={async () => {
+                                  if (!editDate) return
+                                  try {
+                                    await api.updateMemberAccess(m.id, { access_expires_at: new Date(editDate).toISOString() })
+                                    setEditingMemberId(null)
+                                    setEditDate('')
+                                    const res = await fetch('/api/organization/members', { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } })
+                                    setMembers(await res.json())
+                                  } catch (e: any) { /* handled by parent */ }
+                                }}
+                                style={{ background: 'var(--green)', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: '.75rem' }}
+                              >
+                                {t('dashboard.member_save_expiration')}
+                              </button>
+                              <button
+                                onClick={() => { setEditingMemberId(null); setEditDate('') }}
+                                style={{ background: 'var(--gray-300)', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: '.75rem' }}
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ) : isRevoking ? (
+                            <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                              <span style={{ color: 'var(--red)', fontWeight: 600, fontSize: '.85rem' }}>{t('dashboard.member_confirm_revoke')}</span>
+                              <button
+                                onClick={async () => {
+                                  try {
+                                    await api.updateMemberAccess(m.id, { access_expires_at: new Date().toISOString() })
+                                    setRevokingMemberId(null)
+                                    const res = await fetch('/api/organization/members', { headers: { Authorization: 'Bearer ' + localStorage.getItem('token') } })
+                                    setMembers(await res.json())
+                                  } catch (e: any) { /* handled by parent */ }
+                                }}
+                                style={{ background: 'var(--red)', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: '.75rem' }}
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={() => setRevokingMemberId(null)}
+                                style={{ background: 'var(--gray-300)', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: '.75rem' }}
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ) : (
+                            <span style={{ display: 'inline-flex', gap: 6 }}>
+                              <button
+                                onClick={() => { setEditingMemberId(m.id); setEditDate(m.access_expires_at ? m.access_expires_at.split('T')[0] : '') }}
+                                style={{ background: 'var(--blue)', color: '#fff', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: '.75rem' }}
+                              >
+                                {t('dashboard.member_edit_expiration')}
+                              </button>
+                              <button
+                                onClick={() => setRevokingMemberId(m.id)}
+                                style={{ background: 'var(--gray-300)', color: 'var(--red)', border: 'none', padding: '4px 12px', borderRadius: 4, cursor: 'pointer', fontSize: '.75rem' }}
+                              >
+                                {t('dashboard.member_revoke')}
+                              </button>
+                            </span>
+                          )}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )
+        })()}
+
         <div className="card mb-24">
           <h2>{t('dashboard.org')}</h2>
           <p><strong>{organization.name}</strong></p>
@@ -306,8 +463,8 @@ export default function Dashboard() {
           <p style={{ color: 'var(--gray-600)', fontSize: '.8rem' }}>Art. L.412-1 — Luxembourg 🇱🇺</p>
         </div>
 
-        {/* ── Invitation section (admin only) ── */}
-        {user.role === 'admin' && (
+        {/* ── Invitation section (admin, president, DSS) ── */}
+        {(user.role === 'admin' || user.delegue_role === 'president' || user.is_delegue_securite_sante) && (
           <>
             <div className="card mb-24">
               <h2>{t('dashboard.invite')}</h2>
@@ -323,46 +480,91 @@ export default function Dashboard() {
               {!showInvite ? (
                 <button
                   className="btn btn-primary"
-                  onClick={() => { setShowInvite(true); setGeneratedCode(null); setInviteError(null) }}
+                  onClick={() => { setShowInvite(true); setGeneratedCode(null); setInviteError(null); setIsDelegueUser(user.delegue_role === 'president' || user.is_delegue_securite_sante); setInviteType(isDelegueUser ? 'external' : 'delegation'); updateInvite('account_type', isDelegueUser ? 'salarie_designe' : 'delegation') }}
                   disabled={status === 'locked'}
                 >
                   {t('dashboard.invite_generate')}
                 </button>
               ) : (
                 <form onSubmit={handleInvite}>
+                  {/* Type de compte */}
+                  <div className="form-group">
+                    <label>{t('dashboard.invite_account_type')}</label>
+                    <select
+                      value={inviteType === 'delegation' ? 'delegation' : inviteForm.account_type}
+                      onChange={e => {
+                        const val = e.target.value
+                        const isDel = val === 'delegation'
+                        setInviteType(isDel ? 'delegation' : 'external')
+                        setInviteForm(prev => ({
+                          ...prev,
+                          account_type: val,
+                          access_expires_at: isDel ? '' : prev.access_expires_at,
+                        }))
+                      }}
+                    >
+                      {(user.role === 'admin' ? (
+                        <>
+                          <option value="delegation">{t('dashboard.account_type.delegation')}</option>
+                          <option value="salarie_designe">{t('dashboard.account_type.salarie_designe')}</option>
+                          <option value="rh">{t('dashboard.account_type.rh')}</option>
+                          <option value="itm">{t('dashboard.account_type.itm')}</option>
+                          <option value="police">{t('dashboard.account_type.police')}</option>
+                        </>
+                      ) : (
+                        <option value="salarie_designe">{t('dashboard.account_type.salarie_designe')}</option>
+                      ))}
+                    </select>
+                  </div>
+
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
                     <div className="form-group"><label>{t('join.firstname')}</label><input value={inviteForm.first_name} onChange={e => updateInvite('first_name', e.target.value)} required /></div>
                     <div className="form-group"><label>{t('join.lastname')}</label><input value={inviteForm.last_name} onChange={e => updateInvite('last_name', e.target.value)} required /></div>
                   </div>
                   <div className="form-group"><label>{t('join.email')}</label><input type="email" value={inviteForm.email} onChange={e => updateInvite('email', e.target.value)} required /></div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+
+                  {/* Champs délégation */}
+                  {inviteType === 'delegation' && (
+                    <>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
+                        <div className="form-group">
+                          <label>{t('dashboard.invite_status')}</label>
+                          <select value={inviteForm.delegue_status} onChange={e => updateInvite('delegue_status', e.target.value)}>
+                            {api.DELEGUE_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+                          </select>
+                        </div>
+                        <div className="form-group">
+                          <label>{t('dashboard.invite_role')}</label>
+                          <select value={inviteForm.delegue_role} onChange={e => updateInvite('delegue_role', e.target.value)}>
+                            {api.DELEGUE_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                          </select>
+                        </div>
+                      </div>
+                      <div className="form-group" style={{ display: 'flex', gap: 24 }}>
+                        {hasDomain(organization, 'securite_sante') && (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, fontSize: '.85rem' }}>
+                          <input type="checkbox" checked={inviteForm.is_delegue_securite_sante} onChange={e => updateInvite('is_delegue_securite_sante', e.target.checked)} />
+                          {t('dashboard.invite_secu')}
+                        </label>
+                        )}
+                        {hasDomain(organization, 'egalite') && (
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, fontSize: '.85rem' }}>
+                          <input type="checkbox" checked={inviteForm.is_delegue_egalite} onChange={e => updateInvite('is_delegue_egalite', e.target.checked)} />
+                          {t('dashboard.invite_egalite')}
+                        </label>
+                        )}
+                      </div>
+                    </>
+                  )}
+
+                  {/* Champs externes */}
+                  {inviteType === 'external' && (
                     <div className="form-group">
-                      <label>{t('dashboard.invite_status')}</label>
-                      <select value={inviteForm.delegue_status} onChange={e => updateInvite('delegue_status', e.target.value)}>
-                        {api.DELEGUE_STATUS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-                      </select>
+                      <label>{t('dashboard.invite_expiration')}</label>
+                      <input type="date" value={inviteForm.access_expires_at} onChange={e => updateInvite('access_expires_at', e.target.value)} required min={new Date(Date.now() + 86400000).toISOString().split('T')[0]} />
+                      <small style={{ color: 'var(--gray-600)', fontSize: '.8rem' }}>{t('dashboard.invite_expiration_note')}</small>
                     </div>
-                    <div className="form-group">
-                      <label>{t('dashboard.invite_role')}</label>
-                      <select value={inviteForm.delegue_role} onChange={e => updateInvite('delegue_role', e.target.value)}>
-                        {api.DELEGUE_ROLES.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="form-group" style={{ display: 'flex', gap: 24 }}>
-                    {hasDomain(organization, 'securite_sante') && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, fontSize: '.85rem' }}>
-                      <input type="checkbox" checked={inviteForm.is_delegue_securite_sante} onChange={e => updateInvite('is_delegue_securite_sante', e.target.checked)} />
-                      {t('dashboard.invite_secu')}
-                    </label>
-                    )}
-                    {hasDomain(organization, 'egalite') && (
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontWeight: 400, fontSize: '.85rem' }}>
-                      <input type="checkbox" checked={inviteForm.is_delegue_egalite} onChange={e => updateInvite('is_delegue_egalite', e.target.checked)} />
-                      {t('dashboard.invite_egalite')}
-                    </label>
-                    )}
-                  </div>
+                  )}
 
                   {inviteError && <div className="error-msg">{inviteError}</div>}
 

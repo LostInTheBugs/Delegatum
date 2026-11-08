@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from app.core.database import Base
-from app.models.user import DelegueStatus, DelegueRole
+from app.models.user import DelegueStatus, DelegueRole, AccountType
 
 
 class Invitation(Base):
@@ -33,6 +33,11 @@ class Invitation(Base):
     used_at = Column(DateTime(timezone=True), nullable=True)
     # Expiration (30 jours après création ; NULL = jamais pour les anciennes)
     expires_at = Column(DateTime(timezone=True), nullable=True)
+
+    # RBAC : type de compte (recopié à l'inscription)
+    account_type = Column(SAEnum(AccountType), default=AccountType.delegation, nullable=False)
+    # Date d'expiration de l'accès (NULL = permanent)
+    access_expires_at = Column(DateTime(timezone=True), nullable=True)
 
     organization = relationship("Organization", back_populates="invitations")
     created_by = relationship("User")

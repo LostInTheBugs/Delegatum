@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.models import User, UserRole
+from app.models import User, UserRole, AccountType
 from app.models.email import (
     EmailConfig, EmailOutbox, EmailStatus, TransportMode,
 )
@@ -28,6 +28,12 @@ router = APIRouter(prefix="/api/emails", tags=["emails"])
 def _require_admin(user: User) -> None:
     if user.role != UserRole.admin:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé à l'administrateur de la délégation")
+    if user.account_type and user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
+
+
+def _require_admin_and_delegation(user: User) -> None:
+    _require_admin(user)
 
 
 def _get_or_create_config(db: Session, org_id: int) -> EmailConfig:
@@ -146,6 +152,8 @@ def list_outbox(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
     q = db.query(EmailOutbox).filter(EmailOutbox.organization_id == current_user.organization_id)
     if status_filter:
         q = q.filter(EmailOutbox.status == status_filter)
@@ -159,6 +167,8 @@ def download_eml(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
     msg = db.query(EmailOutbox).filter(
         EmailOutbox.id == email_id,
         EmailOutbox.organization_id == current_user.organization_id,
@@ -180,6 +190,8 @@ def retry_email(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
     msg = db.query(EmailOutbox).filter(
         EmailOutbox.id == email_id,
         EmailOutbox.organization_id == current_user.organization_id,
@@ -203,6 +215,8 @@ def cancel_email(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
     msg = db.query(EmailOutbox).filter(
         EmailOutbox.id == email_id,
         EmailOutbox.organization_id == current_user.organization_id,

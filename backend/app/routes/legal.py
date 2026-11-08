@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.deps import get_current_user, require_module
+from app.core.deps import get_current_user, require_access
 from app.models import (
     Organization,
     SafetyRegisterEntry,
@@ -29,7 +29,7 @@ from app.models.election import Election, ElectionStatus
 from app.models.time_entry import TimeEntry
 from app.services import register_chain
 
-router = APIRouter(prefix="/api", tags=["legal"], dependencies=[Depends(require_module("legal"))])
+router = APIRouter(prefix="/api", tags=["legal"])
 
 WORK_HOURS_PER_WEEK = 40  # base conventionnelle : 1 semaine = 40 h
 PRIMO_BONUS_HOURS = 16  # L.415-9(3) : +16 h pour les primo-élus
@@ -73,7 +73,7 @@ class PrimoUpdate(BaseModel):
     is_first_mandate: bool
 
 
-@router.get("/formation/overview")
+@router.get("/formation/overview", dependencies=[Depends(require_access("legal"))])
 def formation_overview(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
     if not org:
@@ -104,7 +104,7 @@ def formation_overview(current_user: User = Depends(get_current_user), db: Sessi
     return {"year": year, "members": sorted(out, key=lambda x: x["full_name"])}
 
 
-@router.put("/formation/primo/{user_id}")
+@router.put("/formation/primo/{user_id}", dependencies=[Depends(require_access("legal"))])
 def set_primo(user_id: int, body: PrimoUpdate,
               current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not _is_bureau(current_user):
@@ -146,7 +146,7 @@ def _org_events(db: Session, org_id: int) -> list[SafetyRegisterEvent]:
     )
 
 
-@router.get("/safety-register", dependencies=[Depends(require_module("safety_register"))])
+@router.get("/safety-register", dependencies=[Depends(require_access("safety_register"))])
 def list_register(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     entries = db.query(SafetyRegisterEntry).filter(
         SafetyRegisterEntry.organization_id == current_user.organization_id
@@ -171,7 +171,7 @@ def list_register(current_user: User = Depends(get_current_user), db: Session = 
     } for e in entries]
 
 
-@router.get("/safety-register/integrity", dependencies=[Depends(require_module("safety_register"))])
+@router.get("/safety-register/integrity", dependencies=[Depends(require_access("safety_register"))])
 def register_integrity(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Vérifie chaîne + projection + sceaux. ok=false = altération détectée."""
     org = db.get(Organization, current_user.organization_id)
@@ -192,7 +192,7 @@ def register_integrity(current_user: User = Depends(get_current_user), db: Sessi
     return report
 
 
-@router.get("/safety-register/export.csv", dependencies=[Depends(require_module("safety_register"))])
+@router.get("/safety-register/export.csv", dependencies=[Depends(require_access("safety_register"))])
 def export_register_csv(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Export CSV du registre complet (actif + annulé) — remise possible à l'ITM."""
     entries = db.query(SafetyRegisterEntry).filter(
@@ -228,7 +228,7 @@ def export_register_csv(current_user: User = Depends(get_current_user), db: Sess
     )
 
 
-@router.get("/safety-register/export.json", dependencies=[Depends(require_module("safety_register"))])
+@router.get("/safety-register/export.json", dependencies=[Depends(require_access("safety_register"))])
 def export_register_integrity(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Dossier d'intégrité complet (registre + journal chaîné + sceaux + jetons TSA).
 
@@ -248,7 +248,7 @@ def export_register_integrity(current_user: User = Depends(get_current_user), db
     )
 
 
-@router.post("/safety-register/seal", dependencies=[Depends(require_module("safety_register"))])
+@router.post("/safety-register/seal", dependencies=[Depends(require_access("safety_register"))])
 def seal_register(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Fige {nombre d'événements, empreinte} et l'horodate (RFC 3161) — bureau."""
     if not _is_bureau(current_user):
@@ -268,7 +268,7 @@ def seal_register(current_user: User = Depends(get_current_user), db: Session = 
     }
 
 
-@router.post("/safety-register", dependencies=[Depends(require_module("safety_register"))])
+@router.post("/safety-register", dependencies=[Depends(require_access("safety_register"))])
 def create_register_entry(body: RegisterEntryCreate,
                           current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not _is_secu_or_bureau(current_user):
@@ -306,7 +306,7 @@ def create_register_entry(body: RegisterEntryCreate,
     return {"id": e.id, "status": "pending"}
 
 
-@router.post("/safety-register/{entry_id}/countersign", dependencies=[Depends(require_module("safety_register"))])
+@router.post("/safety-register/{entry_id}/countersign", dependencies=[Depends(require_access("safety_register"))])
 def countersign_entry(entry_id: int, body: RegisterCountersign,
                       current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not _is_bureau(current_user):
@@ -336,7 +336,7 @@ def countersign_entry(entry_id: int, body: RegisterCountersign,
     return {"id": e.id, "status": "countersigned"}
 
 
-@router.post("/safety-register/{entry_id}/void", dependencies=[Depends(require_module("safety_register"))])
+@router.post("/safety-register/{entry_id}/void", dependencies=[Depends(require_access("safety_register"))])
 def void_register_entry(entry_id: int, body: RegisterVoid,
                         current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Annule une entrée (jamais de suppression) — motif obligatoire, tracé.
@@ -376,7 +376,7 @@ def void_register_entry(entry_id: int, body: RegisterVoid,
 # ----------------------------------------------------------- protection L.415-10
 
 
-@router.get("/protection")
+@router.get("/protection", dependencies=[Depends(require_access("legal"))])
 def protection_overview(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     org = db.query(Organization).filter(Organization.id == current_user.organization_id).first()
     if not org:

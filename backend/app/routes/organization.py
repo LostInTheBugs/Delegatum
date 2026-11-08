@@ -9,7 +9,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import or_
 
 from app.core.database import get_db
-from app.core.deps import get_current_user
+from app.core.deps import get_current_user, require_access
+from app.core.permissions import role_keys
 from app.core.security import (
     hash_password, create_access_token,
     generate_invitation_code, hash_invitation_code, hash_invitation_code_batch,
@@ -18,7 +19,7 @@ from app.core.security import (
 )
 from app.core.captcha import validate_captcha
 from app.core.ratelimit import check_rate_limit, client_ip
-from app.models import User, UserRole, Organization, Invitation, DelegueStatus, DelegueRole
+from app.models import User, UserRole, Organization, Invitation, DelegueStatus, DelegueRole, AccountType
 from app.models.vault_key import VaultKey
 from app.schemas.auth import (
     RegisterRequest,
@@ -34,6 +35,7 @@ from app.schemas.auth import (
     BatchInviteItem,
     BatchInviteRequest,
     BatchInviteResponse,
+    UpdateMemberAccessRequest,
 )
 
 router = APIRouter(prefix="/api", tags=["organization"])
@@ -59,7 +61,75 @@ def _invitation_to_response(inv: Invitation) -> dict:
         "is_used": inv.is_used,
         "created_at": inv.created_at.isoformat() if inv.created_at else None,
         "organization_name": inv.organization.name if inv.organization else None,
+        "account_type": inv.account_type.value if inv.account_type else "delegation",
+        "access_expires_at": inv.access_expires_at.isoformat() if inv.access_expires_at else None,
     }
+
+
+EXTERIOR_ACCOUNT_TYPES = frozenset({"salarie_designe", "rh", "itm", "police"})
+
+
+def _is_exterior_account(account_type: str) -> bool:
+    return account_type != "delegation"
+
+
+def _can_manage_external(current_user) -> bool:
+    """True si le user est admin, président ou DSS."""
+    if current_user.role.value == "admin":
+        return True
+    keys = role_keys(current_user)
+    return "president" in keys or "dss" in keys
+
+
+def _validate_external_invitation(body) -> None:
+    """Vérifications propres aux comptes extérieurs :
+    - forcer delegue_status=employe, delegue_role=membre
+    - refuser is_delegue_securite_sante / is_delegue_egalite à vrai
+    - refuser vault_envelope
+    - access_expires_at (si donné) doit être dans le futur
+    """
+    if body.is_delegue_securite_sante:
+        raise HTTPException(status_code=400, detail="Les comptes extérieurs ne peuvent pas être DSS")
+    if body.is_delegue_egalite:
+        raise HTTPException(status_code=400, detail="Les comptes extérieurs ne peuvent pas être délégués à l'égalité")
+    if body.vault_envelope:
+        raise HTTPException(status_code=400, detail="Les comptes extérieurs ne peuvent pas accéder au coffre")
+    if body.access_expires_at:
+        expires = datetime.fromisoformat(body.access_expires_at)
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        if expires <= now:
+            raise HTTPException(status_code=400, detail="La date d'expiration doit être dans le futur")
+
+
+def _build_external_invitation(
+    db: Session, current_user: User,
+    email: str, first_name: str, last_name: str,
+    account_type: str,
+    access_expires_at: datetime | None = None,
+    hash_fn=hash_invitation_code,
+) -> tuple[Invitation, str]:
+    """Build invitation for an external account — forces employe/membre."""
+    plaintext_code = generate_invitation_code()
+    code_hash = hash_fn(plaintext_code)
+    invitation = Invitation(
+        code_hash=code_hash,
+        email=normalize_email(email),
+        first_name=first_name,
+        last_name=last_name,
+        delegue_status=DelegueStatus.employe,
+        delegue_role=DelegueRole.membre,
+        is_delegue_securite_sante=False,
+        is_delegue_egalite=False,
+        created_by_id=current_user.id,
+        organization_id=current_user.organization_id,
+        expires_at=datetime.now() + timedelta(days=30),
+        account_type=AccountType(account_type),
+        access_expires_at=access_expires_at,
+    )
+    db.add(invitation)
+    return invitation, plaintext_code
 
 
 @router.post("/organizations", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -89,15 +159,61 @@ def create_organization(body: CreateOrganizationRequest, request: Request, db: S
     db.add(org)
     db.flush()
 
+    # ── Profil délégué : le créateur EST le délégué ─────────────────
+    # En profil délégué, pas de « président » : le créateur est le
+    # délégué (rôle=membre) + admin. `admin_delegue_role` est ignoré.
+
+    from app.core.config import get_settings
+    from app.core.modules import instance_domains, _parse_profile
+
+    instance_profile = _parse_profile(get_settings().instance_profile)
+    parsed = set(instance_profile.split(","))
+
+    # ── Calculer les attributs du délégué avant construction ─────────
+    if "sst" in parsed and "egalite" in parsed:
+        # Profil combiné : admin_domain obligatoire
+        domain = body.admin_domain or "securite_sante"
+        allowed_domains = instance_domains()
+        if domain not in allowed_domains:
+            raise HTTPException(
+                status_code=400,
+                detail=f"admin_domain inconnu pour ce profil : {domain} (attendu un des domaines : {', '.join(sorted(allowed_domains))})",
+            )
+        delegue_role = "membre"
+        is_dss = domain == "securite_sante"
+        is_deg = domain == "egalite"
+    elif "sst" in parsed:
+        delegue_role = "membre"
+        is_dss = True
+        is_deg = False
+        if body.admin_domain:
+            raise HTTPException(status_code=400, detail="admin_domain interdit pour le profil sst")
+    elif "egalite" in parsed:
+        delegue_role = "membre"
+        is_dss = False
+        is_deg = True
+        if body.admin_domain:
+            raise HTTPException(status_code=400, detail="admin_domain interdit pour le profil egalite")
+    else:
+        # Profil dp : admin_delegue_role respecté
+        delegue_role = body.admin_delegue_role
+        is_dss = False
+        is_deg = False
+        if body.admin_domain:
+            raise HTTPException(status_code=400, detail="admin_domain interdit pour le profil dp")
+
+    # ── Crée l'utilisateur admin ─────────────────────────────────────
     admin = User(
         email=normalize_email(body.admin_email),
         password_hash=hash_password(body.admin_password),
         first_name=body.admin_first_name,
         last_name=body.admin_last_name,
         delegue_status=DelegueStatus(body.admin_delegue_status),
-        delegue_role=DelegueRole(body.admin_delegue_role),
+        delegue_role=DelegueRole(delegue_role),
         role=UserRole.admin,
         organization_id=org.id,
+        is_delegue_securite_sante=is_dss,
+        is_delegue_egalite=is_deg,
     )
     db.add(admin)
     db.commit()
@@ -154,6 +270,8 @@ def join_organization(body: RegisterRequest, request: Request, db: Session = Dep
         organization_id=invitation.organization_id,
         is_delegue_securite_sante=invitation.is_delegue_securite_sante,
         is_delegue_egalite=invitation.is_delegue_egalite,
+        account_type=invitation.account_type,
+        access_expires_at=invitation.access_expires_at,
     )
     db.add(user)
     db.flush()  # get user.id before commit
@@ -173,7 +291,7 @@ def join_organization(body: RegisterRequest, request: Request, db: Session = Dep
     return TokenResponse(access_token=token)
 
 
-@router.post("/invitations", response_model=CreateInvitationResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/invitations", response_model=CreateInvitationResponse, status_code=status.HTTP_201_CREATED, dependencies=[Depends(require_access("members"))])
 def create_invitation(
     body: CreateInvitationRequest,
     request: Request,
@@ -181,35 +299,57 @@ def create_invitation(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.role != UserRole.admin:
-        raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    is_ext = _is_exterior_account(body.account_type)
 
-    # Vérifier que les champs désignés sont dans le profil d'instance
-    from app.core.modules import instance_domains
-    domains = instance_domains()
-    if body.is_delegue_securite_sante and "securite_sante" not in domains:
-        raise HTTPException(status_code=400, detail="La désignation sécurité-santé est hors profil d'instance")
-    if body.is_delegue_egalite and "egalite" not in domains:
-        raise HTTPException(status_code=400, detail="La désignation égalité est hors profil d'instance")
+    if current_user.role == UserRole.admin:
+        # Admin : toutes les règles existantes s'appliquent
+        from app.core.modules import instance_domains
+        domains = instance_domains()
+        if body.is_delegue_securite_sante and "securite_sante" not in domains:
+            raise HTTPException(status_code=400, detail="La désignation sécurité-santé est hors profil d'instance")
+        if body.is_delegue_egalite and "egalite" not in domains:
+            raise HTTPException(status_code=400, detail="La désignation égalité est hors profil d'instance")
+        _validate_invitation_fields(body.delegue_status, body.delegue_role,
+                                    body.is_delegue_securite_sante, body.is_delegue_egalite)
+        if is_ext:
+            _validate_external_invitation(body)
+            invitation, plaintext_code = _build_external_invitation(
+                db, current_user, body.email, body.first_name, body.last_name,
+                body.account_type,
+                datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None,
+            )
+        else:
+            invitation, plaintext_code = _build_invitation(
+                db, current_user, body.email, body.first_name, body.last_name,
+                body.delegue_status, body.delegue_role,
+                body.is_delegue_securite_sante, body.is_delegue_egalite,
+                body.account_type,
+                datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None,
+                hash_fn=hash_invitation_code,
+            )
+    else:
+        # Non-admin : président ou DSS uniquement pour comptes extérieurs
+        if not _can_manage_external(current_user):
+            raise HTTPException(status_code=403, detail="Seuls l'administrateur, le président et le délégué sécurité-santé peuvent créer des accès extérieurs")
+        if not is_ext:
+            raise HTTPException(status_code=403, detail="Seuls les comptes extérieurs (RH, ITM, police, salarié désigné) sont autorisés")
+        if body.account_type not in EXTERIOR_ACCOUNT_TYPES:
+            raise HTTPException(status_code=400, detail=f"account_type invalide pour un accès extérieur : {body.account_type}")
+        _validate_external_invitation(body)
+        invitation, plaintext_code = _build_external_invitation(
+            db, current_user, body.email, body.first_name, body.last_name,
+            body.account_type,
+            datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None,
+        )
 
-    _validate_invitation_fields(body.delegue_status, body.delegue_role,
-                                body.is_delegue_securite_sante, body.is_delegue_egalite)
-
-    invitation, plaintext_code = _build_invitation(
-        db, current_user, body.email, body.first_name, body.last_name,
-        body.delegue_status, body.delegue_role,
-        body.is_delegue_securite_sante, body.is_delegue_egalite,
-        hash_fn=hash_invitation_code,
-    )
     db.flush()  # get invitation.id
 
-    # Vault invitation envelope: if the org has a vault and the inviter
-    # (who holds the DEK) sent an envelope wrapped under the invitation code,
-    # store it in vault_keys with invitation_id set.
-    if body.vault_envelope:
-        _store_invitation_vault_envelope(
-            db, body.vault_envelope, invitation, current_user
-        )
+    if not is_ext:
+        # Vault invitation envelope (uniquement pour comptes internes)
+        if body.vault_envelope:
+            _store_invitation_vault_envelope(
+                db, body.vault_envelope, invitation, current_user
+            )
 
     db.commit()
     db.refresh(invitation)
@@ -256,6 +396,8 @@ def _build_invitation(
     email: str, first_name: str, last_name: str,
     delegue_status: str, delegue_role: str,
     is_delegue_securite_sante: bool, is_delegue_egalite: bool,
+    account_type: str = "delegation",
+    access_expires_at: datetime | None = None,
     hash_fn=hash_invitation_code,
 ) -> tuple[Invitation, str]:
     """Create the Invitation row + plaintext code (shown once).
@@ -278,12 +420,14 @@ def _build_invitation(
         created_by_id=current_user.id,
         organization_id=current_user.organization_id,
         expires_at=datetime.now() + timedelta(days=30),
+        account_type=AccountType(account_type),
+        access_expires_at=access_expires_at,
     )
     db.add(invitation)
     return invitation, plaintext_code
 
 
-@router.post("/invitations/batch", response_model=BatchInviteResponse)
+@router.post("/invitations/batch", response_model=BatchInviteResponse, dependencies=[Depends(require_access("members"))])
 def create_invitations_batch(
     body: BatchInviteRequest,
     request: Request,
@@ -348,10 +492,12 @@ def create_invitations_batch(
             skipped += 1
             continue
 
+        # Invitation en masse : compte de délégation toujours, salariés non-élus
         invitation, plaintext_code = _build_invitation(
             db, current_user, email, first_name, last_name,
             DelegueStatus.employe.value, DelegueRole.membre.value,
             False, False,
+            "delegation",
             hash_fn=hash_invitation_code_batch,
         )
         db.flush()  # get invitation.id
@@ -372,7 +518,7 @@ def create_invitations_batch(
     return {"results": results, "created": created, "skipped": skipped, "failed": failed}
 
 
-@router.delete("/organization/members/{user_id}")
+@router.delete("/organization/members/{user_id}", dependencies=[Depends(require_access("members"))])
 def remove_member(
     user_id: int,
     current_user: User = Depends(get_current_user),
@@ -383,9 +529,11 @@ def remove_member(
     Le compte reste en base (les références historiques — PV, heures,
     réunions — restent valides), mais le login et l'API sont bloqués et le
     membre disparaît des listes. C'est le pattern is_active déjà en place.
+
+    Le président et le délégué sécurité-santé peuvent aussi retirer un
+    compte extérieur (ex: ITM, RH, police).
     """
-    if current_user.role != UserRole.admin:
-        raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    is_admin = current_user.role == UserRole.admin
 
     target = db.query(User).filter(
         User.id == user_id,
@@ -397,6 +545,13 @@ def remove_member(
         raise HTTPException(status_code=400, detail="Impossible de retirer votre propre compte")
     if not target.is_active:
         return {"id": target.id, "removed": False}
+
+    # Non-admin (président/DSS) : autorisé uniquement pour un compte extérieur
+    if not is_admin:
+        if not _can_manage_external(current_user):
+            raise HTTPException(status_code=403, detail="Réservé à l'administrateur, au président ou au délégué sécurité-santé")
+        if target.account_type == AccountType.delegation:
+            raise HTTPException(status_code=403, detail="Seul l'administrateur peut gérer un compte interne")
 
     # Garde défensive : ne jamais laisser l'org sans administrateur
     if target.role == UserRole.admin:
@@ -414,6 +569,59 @@ def remove_member(
     target.token_version = (target.token_version or 0) + 1
     db.commit()
     return {"id": target.id, "removed": True}
+
+
+@router.put("/organization/members/{user_id}/access", dependencies=[Depends(require_access("members"))])
+def update_member_access(
+    user_id: int,
+    body: UpdateMemberAccessRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Modifier ou supprimer la date d'expiration d'un accès extérieur.
+
+    Admin, président ou DSS : modifie access_expires_at d'un membre.
+    Date passée = révocation immédiate ; None = accès permanent ;
+    date future = nouvelle date d'expiration.
+    """
+    is_admin = current_user.role == UserRole.admin
+
+    target = db.query(User).filter(
+        User.id == user_id,
+        User.organization_id == current_user.organization_id,
+    ).first()
+    if target is None:
+        raise HTTPException(status_code=404, detail="Membre introuvable")
+
+    # Non-admin (président/DSS) : autorisé uniquement pour un compte extérieur
+    if not is_admin:
+        if not _can_manage_external(current_user):
+            raise HTTPException(status_code=403, detail="Réservé à l'administrateur, au président ou au délégué sécurité-santé")
+        if target.account_type == AccountType.delegation:
+            raise HTTPException(status_code=403, detail="Seul l'administrateur peut gérer un compte interne")
+
+    # Date fournie : vérifier qu'elle est dans le futur (sauf None ou date passée = révocation)
+    if body.access_expires_at is not None:
+        expires = datetime.fromisoformat(body.access_expires_at)
+        if expires.tzinfo is None:
+            expires = expires.replace(tzinfo=timezone.utc)
+        now = datetime.now(timezone.utc)
+        # Date dans le passé = révocation immédiate (ok)
+        # Date dans le futur = nouvelle expiration (ok)
+
+    target.access_expires_at = datetime.fromisoformat(body.access_expires_at) if body.access_expires_at else None
+    # Si la nouvelle date est dans le passé, révoquer immédiatement (token_version seulement — l'expiration gère déjà le blocage)
+    if target.access_expires_at is not None:
+        if target.access_expires_at <= datetime.now(timezone.utc):
+            target.token_version = (target.token_version or 0) + 1
+    db.commit()
+    db.refresh(target)
+    return {
+        "id": target.id,
+        "email": target.email,
+        "access_expires_at": target.access_expires_at.isoformat() if target.access_expires_at else None,
+        "is_active": target.is_active,
+    }
 
 
 def _queue_invite_email(
@@ -439,7 +647,7 @@ def _queue_invite_email(
         background_tasks.add_task(send_ready_smtp, db, invitation.organization_id)
 
 
-@router.put("/organization", response_model=OrganizationResponse)
+@router.put("/organization", response_model=OrganizationResponse, dependencies=[Depends(require_access("members"))])
 def update_organization(
     body: UpdateOrganizationRequest,
     current_user: User = Depends(get_current_user),
@@ -447,6 +655,8 @@ def update_organization(
 ):
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=403, detail="Réservé aux comptes de délégation")
 
     org = current_user.organization
     if body.name is not None:
@@ -508,7 +718,7 @@ def get_modules(current_user: User = Depends(get_current_user)):
     }
 
 
-@router.put("/organization/modules", response_model=OrganizationResponse)
+@router.put("/organization/modules", response_model=OrganizationResponse, dependencies=[Depends(require_access("members"))])
 def update_modules(
     body: ModulesUpdate,
     current_user: User = Depends(get_current_user),
@@ -519,6 +729,8 @@ def update_modules(
     from app.core.modules import ALL_MODULES, instance_modules
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=403, detail="Réservé aux comptes de délégation")
     unknown = [m for m in body.modules if m not in ALL_MODULES]
     if unknown:
         raise HTTPException(status_code=422, detail=f"Modules inconnus : {', '.join(unknown)}")
@@ -545,7 +757,7 @@ class LogoUpdate(BaseModel):
     logo_data: str  # data URL : "data:image/png;base64,..."
 
 
-@router.put("/organization/logo", response_model=OrganizationResponse)
+@router.put("/organization/logo", response_model=OrganizationResponse, dependencies=[Depends(require_access("members"))])
 def update_logo(
     body: LogoUpdate,
     current_user: User = Depends(get_current_user),
@@ -554,6 +766,8 @@ def update_logo(
     """Enregistre le logo de l'entreprise (admin). Data URL ≤ 512 Ko."""
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=403, detail="Réservé aux comptes de délégation")
     data = body.logo_data.strip()
     if not data.startswith("data:image/"):
         raise HTTPException(status_code=422, detail="Format invalide : data URL d'image attendue (data:image/png;base64,...)")
@@ -566,13 +780,15 @@ def update_logo(
     return OrganizationResponse.model_validate(org)
 
 
-@router.delete("/organization/logo", response_model=OrganizationResponse)
+@router.delete("/organization/logo", response_model=OrganizationResponse, dependencies=[Depends(require_access("members"))])
 def delete_logo(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
     if current_user.role != UserRole.admin:
         raise HTTPException(status_code=403, detail="Réservé aux administrateurs")
+    if current_user.account_type and current_user.account_type != AccountType.delegation:
+        raise HTTPException(status_code=403, detail="Réservé aux comptes de délégation")
     org = current_user.organization
     org.logo_data = None
     db.commit()
@@ -598,6 +814,17 @@ def get_public_org(slug: str, db: Session = Depends(get_db)):
     return PublicOrgResponse(name=org.name, company_name=org.company_name, logo_data=org.logo_data)
 
 
+@router.get("/instance")
+def get_instance_info():
+    """Profil et domaines de l'instance (public, sans auth)."""
+    from app.core.config import get_settings
+    from app.core.modules import instance_domains, _parse_profile
+    return {
+        "profile": _parse_profile(get_settings().instance_profile),
+        "domains": sorted(instance_domains()),
+    }
+
+
 @router.get("/invitations", response_model=list[InvitationResponse])
 def list_invitations(
     current_user: User = Depends(get_current_user),
@@ -613,7 +840,7 @@ def list_invitations(
     return [_invitation_to_response(inv) for inv in invitations]
 
 
-@router.get("/organization/members", response_model=list[UserResponse])
+@router.get("/organization/members", response_model=list[UserResponse], dependencies=[Depends(require_access("members"))])
 def list_members(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
@@ -626,7 +853,7 @@ def list_members(
     return [UserResponse.model_validate(m) for m in members]
 
 
-@router.put("/organization/members/{user_id}/role")
+@router.put("/organization/members/{user_id}/role", dependencies=[Depends(require_access("members"))])
 def change_member_role(
     user_id: int,
     body: dict,  # {"role": "admin" | "member"}
@@ -646,7 +873,7 @@ def change_member_role(
     return UserResponse.model_validate(target)
 
 
-@router.put("/organization/members/{user_id}/delegue-role")
+@router.put("/organization/members/{user_id}/delegue-role", dependencies=[Depends(require_access("members"))])
 def change_delegue_role(
     user_id: int,
     body: dict,  # {"delegue_role": "president"|"vice_president"|"secretaire"|"membre"}

@@ -46,6 +46,12 @@ Der Port kann über die Umgebungsvariable `SD_PORT` in allen Kontexten (Docker, 
 
 Im Delegierten-nur-Profil (`sst`, `egalite` oder `sst,egalite`) sind folgende Module ausgeblendet: Sitzungen/Protokolle/Tresor/Archiv, Wahlen, Konsultationen, Statistiken, Anschlagbrett, Compliance, Kontakt. Die verbleibenden Funktionen sind: Dashboard, Aktivitäten der Profil-domain(en), Stunden, Schulung/Schutz, und Sicherheitsregister (nur wenn `sst`).
 
+## Zugriffsrechte (RBAC)
+
+- **Rolle × Matrix** (Einstellungen → Zugriffsrechte): `Keine / Lesen / Schreiben` pro Org/Rolle/Modul. Der Administrator hat immer `Schreiben`. Knopf « Standardwerte wiederherstellen ».
+- **Externe Konten** (bestellter Arbeitnehmer, HR, ITM, Polizei): namhaftes Konto, obligatorisches Ablaufdatum, maximal Leserecht, nie Sitzungen/Protokolle; eingeladen vom Administrator, Präsidenten oder DSS; Ablaufdatum änderbar, sofortige Widerrufung.
+- **Delegierten-nur-Instanzen** (`sst`, `egalite`, `sst,egalite`): der Ersteller wird Delegierter + Administrator (kein Präsident); in `egalite,sst` wählt er seine Domäne; die eingeladene Delegation hat standardmässig Leserecht.
+
 ## Aktualisierungen
 
 Automatisches Update für delegierte Verwaltung — die Anwendung prüft auf neue Versionen und hinterlegt bei Verfügbarkeit eine Anforderungsdatei; ein systemd-Dienst (Timer + Skript) im Host wendet das Update an, indem er das Release-Tarball zieht, den Code rsynced, Docker-Images neu baut und Alembic-Migrationen ausführt. Der App-Container **berührt niemals** Docker — eine bewusste Sicherheitsgrenze.

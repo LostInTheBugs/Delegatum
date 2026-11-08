@@ -11,6 +11,7 @@ interface UserResponse {
   delegue_status: string
   delegue_role: string
   role: string
+  account_type: string
   totp_enabled: boolean
   is_delegue_securite_sante: boolean
   is_delegue_egalite: boolean
@@ -146,6 +147,25 @@ export function createInvitationsBatch(
 
 export function removeMember(userId: number): Promise<{ id: number; removed: boolean }> {
   return request(`/organization/members/${userId}`, { method: 'DELETE' })
+}
+
+export function updateMemberAccess(userId: number, data: { access_expires_at: string | null }): Promise<{ id: number; access_expires_at: string | null }> {
+  return request(`/organization/members/${userId}/access`, { method: 'PUT', body: JSON.stringify(data) })
+}
+
+export interface PermissionMatrixResponse {
+  roles: string[]
+  modules: string[]
+  matrix: Record<string, Record<string, string>>
+  defaults: Record<string, Record<string, string>>
+}
+
+export function getPermissions(): Promise<PermissionMatrixResponse> {
+  return request('/organization/permissions')
+}
+
+export function updatePermissions(matrix: Record<string, Record<string, string>>): Promise<PermissionMatrixResponse> {
+  return request('/organization/permissions', { method: 'PUT', body: JSON.stringify({ matrix }) })
 }
 
 export interface NoticePost {
@@ -786,6 +806,21 @@ export type { VaultStatusResponse, VaultKeyResponse, VaultEnvelope }
 
 export { b64Encode, b64Decode }
 export type { Section, MinuteResponse, DirectionPreview }
+
+// ── Instance info (public) ──────────────────────────────────────────
+
+export interface InstanceInfo {
+  profile: string
+  domains: string[]
+}
+
+export function getInstanceInfo(): Promise<InstanceInfo> {
+  // Public endpoint: no auth, no token ever
+  return fetch('/api/instance').then(r => {
+    if (!r.ok) return Promise.reject(new Error(`Erreur ${r.status} ${r.statusText}`))
+    return r.json()
+  })
+}
 
 // ── Self-Update (admin) ──────────────────────────────────────────────
 
