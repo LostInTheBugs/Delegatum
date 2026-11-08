@@ -8,6 +8,7 @@ interface User {
   delegue_status: string; delegue_role: string; role: string
   totp_enabled: boolean
   is_delegue_securite_sante: boolean; is_delegue_egalite: boolean
+  account_type: string
 }
 
 interface Organization {

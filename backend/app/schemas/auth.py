@@ -147,6 +147,7 @@ class UserResponse(BaseModel):
     delegue_status: str
     delegue_role: str
     role: str
+    account_type: str = "delegation"
     totp_enabled: bool = False
     is_delegue_securite_sante: bool = False
     is_delegue_egalite: bool = False

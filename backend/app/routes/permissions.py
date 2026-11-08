@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.modules import ALL_MODULES, instance_modules
@@ -19,9 +20,9 @@ from app.core.permissions import (
     EXTERIOR_FORBIDDEN_MODULES,
     PermissionMatrix,
     default_permissions,
-    effective_level,
     init_default_permissions,
     role_keys,
+    role_level,
 )
 from app.models import AccountType, User
 from app.models.organization import Organization
@@ -68,12 +69,8 @@ def get_permissions(
     instance_mods = instance_modules()
     modules = sorted(set(instance_mods) | {"members"})
 
-    from app.core.config import get_settings
-    try:
-        settings = get_settings()
-        org_profile = settings.instance_profile
-    except RuntimeError:
-        org_profile = "dp"
+    settings = get_settings()
+    org_profile = settings.instance_profile
     current_defaults = default_permissions(org_profile)
 
     # Rôles connus (sans admin)
@@ -83,30 +80,24 @@ def get_permissions(
     matrix: dict[str, dict[str, str]] = {}
     for role in roles:
         matrix[role] = {}
-        for module in modules:
-            if role == "admin":
-                # admin → toujours write, non lisible depuis la matrice
+        if role == "admin":
+            for module in modules:
                 matrix[role][module] = "write"
-            else:
-                # Simuler un user du rôle concerné pour effective_level
-                # Les rôles extérieurs doivent avoir le account_type correspondant
-                # afin que les règles dures (max=read, meetings=none) s'appliquent
-                exterior_types = {"salarie_designe", "rh", "itm", "police"}
-                if role in exterior_types:
-                    acct = AccountType(role)
-                else:
-                    acct = AccountType.delegation
-                from unittest.mock import MagicMock
-                mock_user = MagicMock()
-                mock_user.role = "member"
-                mock_user.account_type = acct
-                mock_user.organization_id = current_user.organization_id
-                mock_user.delegue_role = None
-                mock_user.is_delegue_securite_sante = False
-                mock_user.is_delegue_egalite = False
-                mock_user.delegue_status = None
-                level = effective_level(mock_user, module, db)
+        elif role in {"salarie_designe", "rh", "itm", "police"}:
+            # Rôles extérieurs : level via role_level, puis durcissement
+            for module in modules:
+                level = role_level(current_user.organization_id, role, module, db)
+                # write ramené à read
+                if level == "write":
+                    level = "read"
+                # meetings → toujours none
+                if module == "meetings":
+                    level = "none"
                 matrix[role][module] = level
+        else:
+            # Rôles internes (delegue, bureau, president, dss, deg, salarie)
+            for module in modules:
+                matrix[role][module] = role_level(current_user.organization_id, role, module, db)
 
     return {
         "roles": roles,

@@ -11,6 +11,7 @@ interface UserResponse {
   delegue_status: string
   delegue_role: string
   role: string
+  account_type: string
   totp_enabled: boolean
   is_delegue_securite_sante: boolean
   is_delegue_egalite: boolean
@@ -146,6 +147,21 @@ export function createInvitationsBatch(
 
 export function removeMember(userId: number): Promise<{ id: number; removed: boolean }> {
   return request(`/organization/members/${userId}`, { method: 'DELETE' })
+}
+
+export interface PermissionMatrixResponse {
+  roles: string[]
+  modules: string[]
+  matrix: Record<string, Record<string, string>>
+  defaults: Record<string, Record<string, string>>
+}
+
+export function getPermissions(): Promise<PermissionMatrixResponse> {
+  return request('/organization/permissions')
+}
+
+export function updatePermissions(matrix: Record<string, Record<string, string>>): Promise<PermissionMatrixResponse> {
+  return request('/organization/permissions', { method: 'PUT', body: JSON.stringify({ matrix }) })
 }
 
 export interface NoticePost {

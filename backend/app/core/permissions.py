@@ -21,6 +21,7 @@ import sqlalchemy as sa
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.database import Base
 from app.core.modules import ALL_MODULES, instance_modules
 from app.models.user import AccountType
@@ -213,7 +214,47 @@ class PermissionMatrix(Base):
         return f"<PermissionMatrix org={self.organization_id} role={self.role_key} module={self.module} level={self.level}>"
 
 
+# ── Niveau pour une clé de rôle ────────────────────────────────────
+
+
+def role_level(org_id: int, role_key: str, module: str, db: Session) -> str:
+    """Retourne le niveau d'accès pour UNE clé de rôle sur un module.
+
+    Vérifie d'abord la base (PermissionMatrix), puis les défauts du profil.
+    Retourne ``none`` si le module n'est pas dans l'instance.
+    Les rôles extérieurs voient leurs niveaux durcis ici.
+    """
+    instance_mods = instance_modules()
+    if module not in instance_mods and module != "members":
+        return AccessLevel.none.value
+
+    # Vérifier en base
+    row = db.query(PermissionMatrix).filter(
+        PermissionMatrix.organization_id == org_id,
+        PermissionMatrix.role_key == role_key,
+        PermissionMatrix.module == module,
+    ).first()
+
+    if row:
+        level = row.level
+    else:
+        # Fallback sur les défauts
+        settings = get_settings()
+        org_profile = settings.instance_profile
+        level = default_permissions(org_profile).get(role_key, {}).get(module, AccessLevel.none.value)
+
+    # Règles dures : exterior roles → write ramené à read, meetings → none
+    if role_key in {"salarie_designe", "rh", "itm", "police"}:
+        if level == AccessLevel.write.value:
+            level = AccessLevel.read.value
+        if module in EXTERIOR_FORBIDDEN_MODULES:
+            level = AccessLevel.none.value
+
+    return level
+
+
 # ── Niveau effectif ────────────────────────────────────────────────
+
 
 def effective_level(user, module: str, db: Session) -> str:
     """Retourne le niveau d'accès effectif pour cet utilisateur sur ce module.
@@ -224,9 +265,8 @@ def effective_level(user, module: str, db: Session) -> str:
     - Rôles extérieurs : max = `read`, et `meetings` = toujours `none`.
     """
     role = getattr(user, "role", None)
-    is_admin = role == "admin"
 
-    if is_admin:
+    if role == "admin":
         return AccessLevel.write.value
 
     keys = role_keys(user)
@@ -234,47 +274,19 @@ def effective_level(user, module: str, db: Session) -> str:
     if org_id is None:
         return AccessLevel.none.value
 
-    instance_mods = instance_modules()
-    if module not in instance_mods and module != "members":
-        return AccessLevel.none.value
-
-    # Rôle extérieur : durcir le maximum
     is_exterior = user.account_type != AccountType.delegation
 
     best = AccessLevel.none
     for key in keys:
-        # admin ne peut pas être modifié via la matrice
         if key == "admin":
             continue
 
-        # Vérifier en base d'abord
-        row = db.query(PermissionMatrix).filter(
-            PermissionMatrix.organization_id == org_id,
-            PermissionMatrix.role_key == key,
-            PermissionMatrix.module == module,
-        ).first()
-
-        if row:
-            level = AccessLevel(row.level)
-            if level.value == AccessLevel.write.value:
-                best = AccessLevel.write
-            elif level.value == AccessLevel.read.value and best.value != AccessLevel.write.value:
-                best = AccessLevel.read
-        else:
-            # Fallback sur les défauts (adaptatif selon profil d'instance)
-            from app.core.config import get_settings
-            try:
-                settings = get_settings()
-                org_profile = settings.instance_profile
-            except RuntimeError:
-                org_profile = "dp"
-            defaults = default_permissions(org_profile).get(key, {})
-            if module in defaults:
-                level = AccessLevel(defaults[module])
-                if level.value == AccessLevel.write.value:
-                    best = AccessLevel.write
-                elif level.value == AccessLevel.read.value and best.value != AccessLevel.write.value:
-                    best = AccessLevel.read
+        level_str = role_level(org_id, key, module, db)
+        level = AccessLevel(level_str)
+        if level.value == AccessLevel.write.value:
+            best = AccessLevel.write
+        elif level.value == AccessLevel.read.value and best.value != AccessLevel.write.value:
+            best = AccessLevel.read
 
     # Règles dures pour les rôles extérieurs
     if is_exterior:
@@ -293,12 +305,8 @@ def init_default_permissions(org_id: int, db: Session) -> None:
     instance_mods = instance_modules()
     modules_to_use = set(instance_mods) | {"members"}
 
-    from app.core.config import get_settings
-    try:
-        settings = get_settings()
-        org_profile = settings.instance_profile
-    except RuntimeError:
-        org_profile = "dp"
+    settings = get_settings()
+    org_profile = settings.instance_profile
 
     for role_key, modules in default_permissions(org_profile).items():
         for module in modules_to_use:

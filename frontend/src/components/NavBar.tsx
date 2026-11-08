@@ -79,6 +79,7 @@ export default function NavBar() {
         {hasModule(organization, 'safety_register') && <Link to="/safety-register" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>🛡️ {t('nav.register')}</Link>}
         {hasModule(organization, 'time_tracking') && <Link to="/hours" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>⏱️ {t('nav.hours')}</Link>}
         {hasModule(organization, 'contact') && <Link to="/contact" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>📇 {t('nav.contact')}</Link>}
+        {user?.account_type === 'delegation' && <Link to="/settings/access" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.access_rights')}</Link>}
         {user?.role === 'admin' && <Link to="/organization" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>{t('nav.organization')}</Link>}
         {user?.role === 'admin' && <Link to="/notifications" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>📧 Notifications</Link>}
         {updatesAllowed === true && <Link to="/admin/updates" style={{ color:'var(--blue)', fontWeight:600, textDecoration:'none', fontSize:'.9rem' }}>🔄 {t('nav.updates')}</Link>}
