@@ -1,6 +1,6 @@
 import enum
 
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum as SAEnum, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -68,6 +68,9 @@ class ElectionBallot(Base):
 
     Invariant d'anonymat : cette table contient l'identité, l'autre
     (election_votes) contient le choix ; aucune jointure possible par design.
+
+    Contrainte unique (election_id, user_id) empêche le double vote même
+    en cas de requêtes concurrentes (race-condition safety net).
     """
 
     __tablename__ = "election_ballots"
@@ -76,6 +79,10 @@ class ElectionBallot(Base):
     election_id = Column(Integer, ForeignKey("elections.id"), nullable=False, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     cast_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("election_id", "user_id", name="uq_ballots_election_user"),
+    )
 
 
 class ElectionVoteTally(Base):

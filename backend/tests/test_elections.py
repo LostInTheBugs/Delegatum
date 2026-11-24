@@ -2,10 +2,14 @@
 
 Couvre : cycle complet (annonce → candidatures → scrutin → clôture),
 éligibilité L.413-4, anonymat du vote par construction (ballots/votes
-séparés, non jointables), double vote, d'Hondt proportionnel, majorité
-relative <100 salariés, isolation entre organisations.
+séparés, non jointables), double vote, vote concurrent (race-condition),
+d'Hondt proportionnel, majorité relative <100 salariés, isolation entre
+organisations.
 """
 
+import asyncio
+import threading
+import time
 from datetime import datetime, timedelta
 
 from app.core.database import SessionLocal
@@ -267,3 +271,67 @@ def test_results_blocked_before_close(client, org_with_users):
     # Phase closed : résultats accessibles
     r3 = client.get(f"/api/elections/{eid}/results", headers=_h(org_with_users["sophie_token"]))
     assert r3.status_code == 200
+
+
+# ── Vote concurrent (race-condition) ────────────────────────────────
+
+def test_concurrent_vote_prevents_double_ballot(client, org_with_users):
+    """Deux requêtes simultanées ne doivent pas produire deux bulletins.
+
+    Le scénario : deux threads envoient un vote au même électeur presque
+    en même temps. Le check-then-insert de la route n'est pas atomique,
+    donc sans protection on aurait deux ballot. La contrainte unique +
+    IntegrityError gère cela : un vote passe, l'autre reçoit 400.
+    """
+    from app.core.database import SessionLocal
+    from app.models import ElectionBallot, ElectionVoteTally
+
+    eid = _mk_election(client, org_with_users["sophie_token"])
+    r = client.post(f"/api/elections/{eid}/candidates", json={
+        "full_name": "Candidat", "list_label": "Liste Libre",
+    }, headers=_h(org_with_users["sophie_token"]))
+    assert r.status_code == 201
+    cand_id = r.json()["id"]
+    assert client.post(f"/api/elections/{eid}/open", headers=_h(org_with_users["sophie_token"])).status_code == 200
+
+    vote_payload = {"candidate_id": cand_id}
+    token = org_with_users["tom_token"]
+    results = []
+
+    def _vote():
+        resp = client.post(
+            f"/api/elections/{eid}/vote",
+            json=vote_payload,
+            headers=_h(token),
+        )
+        results.append(resp.status_code)
+
+    # Lancer 3 votes quasi-simultanés du même électeur
+    threads = [threading.Thread(target=_vote) for _ in range(3)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=10)
+
+    # Un seul 201, les autres 400
+    assert results.count(201) == 1, f"Attendu 1 succès, obtenu {results}"
+    assert results.count(400) == 2, f"Attendu 2 erreurs, obtenu {results}"
+
+    # Vérification DB : exactement 1 bulletin, 1 vote
+    db = SessionLocal()
+    ballots = db.query(ElectionBallot).filter(
+        ElectionBallot.election_id == eid,
+        ElectionBallot.user_id == org_with_users.get("tom_id", 3),
+    ).all()
+    # Si tom_id n'est pas stocké, compter par election uniquement
+    all_ballots = db.query(ElectionBallot).filter(
+        ElectionBallot.election_id == eid
+    ).all()
+    assert len(all_ballots) == 1, f"Attendu 1 bulletin, trouvé {len(all_ballots)}"
+    assert len(ballots) == 1 or len(all_ballots) == 1  # au moins 1 total
+    tallies = db.query(ElectionVoteTally).filter(
+        ElectionVoteTally.election_id == eid
+    ).all()
+    total = sum(t.count for t in tallies)
+    assert total == 1, f"Attendu total=1, obtenu {total}"
+    db.close()

@@ -12,6 +12,7 @@ et election_votes (choix, sans identité) — aucune jointure possible.
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -239,15 +240,22 @@ def cast_vote(
     # Le compteur est incrémenté dans la MÊME transaction que le ballot :
     # cohérence garantie, et aucune ligne par électeur n'existe — l'anonymat
     # est structurel, il n'y a rien à corréler.
-    db.add(ElectionBallot(election_id=e.id, user_id=current_user.id))
-    tally = db.query(ElectionVoteTally).filter(
-        ElectionVoteTally.candidate_id == candidate.id,
-    ).first()
-    if tally is None:
-        tally = ElectionVoteTally(election_id=e.id, candidate_id=candidate.id, count=0)
-        db.add(tally)
-    tally.count += 1
-    db.commit()
+    # La contrainte unique (election_id, user_id) est un safety net
+    # anti-race-condition : si deux requêtes concurrentes passent la
+    # vérification ci-dessus, l'une lève IntegrityError → 400.
+    try:
+        db.add(ElectionBallot(election_id=e.id, user_id=current_user.id))
+        tally = db.query(ElectionVoteTally).filter(
+            ElectionVoteTally.candidate_id == candidate.id,
+        ).first()
+        if tally is None:
+            tally = ElectionVoteTally(election_id=e.id, candidate_id=candidate.id, count=0)
+            db.add(tally)
+        tally.count += 1
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Vote déjà enregistré")
     return {"ok": True, "message": "Vote enregistré"}
 
 
