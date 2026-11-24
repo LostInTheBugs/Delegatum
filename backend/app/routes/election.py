@@ -309,6 +309,8 @@ def get_results(
     ).first()
     if e is None:
         raise HTTPException(status_code=404, detail="Élection introuvable")
+    if e.status != ElectionStatus.closed:
+        raise HTTPException(status_code=403, detail="Les résultats ne sont consultables qu'après clôture du scrutin")
     return compute_results(e, current_user, db)
 
 

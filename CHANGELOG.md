@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.11.004] — 2026-11-24
+
+### 🔒 Sécurité
+- **Résultats d'élection protégés** — `GET /elections/{id}/results` renvoie maintenant **403** quand le scrutin n'est pas clôturé (message en français). Les totaux par candidat et les répartition de sièges ne sont plus accessibles pendant la phase de vote, empêchant les résultats en temps réel d'influencer les votants restants. Ajout du test `test_results_blocked_before_close`.
+
 ## [2026.11.003-c1] — 2026-11-08
 
 - **correctif migration** : `20261108_0021_rbac` rendue idempotente (inspecteur SQLAlchemy) — `create_all()` au démarrage ne provoque plus d'erreur sur colonnes/tables dupliquées.

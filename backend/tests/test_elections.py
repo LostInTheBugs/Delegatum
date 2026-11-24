@@ -240,3 +240,30 @@ def test_elections_org_isolation(client, org_with_users):
         "full_name": "X", "list_label": "L",
     }, headers=_h(org_with_users["other_token"]))
     assert r.status_code == 404
+
+
+# ── Résultats protégés avant clôture ──────────────────────────────────
+
+def test_results_blocked_before_close(client, org_with_users):
+    eid = _mk_election(client, org_with_users["sophie_token"])
+    # candidature nécessaire pour ouvrir le scrutin
+    r = client.post(f"/api/elections/{eid}/candidates", json={
+        "full_name": "Jean Test", "list_label": "Liste A",
+        "birth_date": "1990-01-01T00:00:00", "hire_date": "2015-01-01T00:00:00",
+        "declared_not_excluded": True,
+    }, headers=_h(org_with_users["sophie_token"]))
+    assert r.status_code == 201
+    # Phase announced : résultats refusés
+    r = client.get(f"/api/elections/{eid}/results", headers=_h(org_with_users["sophie_token"]))
+    assert r.status_code == 403, r.text
+    assert "après clôture" in r.json()["detail"]
+    # Ouverture du scrutin
+    assert client.post(f"/api/elections/{eid}/open", headers=_h(org_with_users["sophie_token"])).status_code == 200
+    # Phase voting : résultats toujours refusés
+    r2 = client.get(f"/api/elections/{eid}/results", headers=_h(org_with_users["sophie_token"]))
+    assert r2.status_code == 403, r2.text
+    # Clôture
+    assert client.post(f"/api/elections/{eid}/close", headers=_h(org_with_users["sophie_token"])).status_code == 200
+    # Phase closed : résultats accessibles
+    r3 = client.get(f"/api/elections/{eid}/results", headers=_h(org_with_users["sophie_token"]))
+    assert r3.status_code == 200
