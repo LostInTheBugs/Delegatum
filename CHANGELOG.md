@@ -2,6 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
+## [2026.11.005] — 2026-11-24
+
+### 🔒 Sécurité
+- **MFA token version check** — `/mfa/login` compare maintenant le claim `ver` du jeton temporaire MFA avec `user.token_version` actuel. Un jeton émis avant une révocation de jetons (via `/auth/revoke-user` ou suppression membre) est immédiatement invalidé, empêchant un défi MFA déjà ouvert de survivre à une révocation.
+
 ## [2026.11.004] — 2026-11-24
 
 ### 🔒 Sécurité

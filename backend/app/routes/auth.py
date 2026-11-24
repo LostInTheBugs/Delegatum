@@ -117,6 +117,11 @@ def mfa_login(body: MfaLoginRequest, request: Request, db: Session = Depends(get
     user = db.query(User).filter(User.id == int(user_id)).first()
     if not user:
         raise HTTPException(status_code=401, detail="Utilisateur non trouvé")
+
+    # Le ver du token doit correspondre à la version courante — un jeton émis
+    # avant révocation est invalidé par l'incrémentation de token_version.
+    if (payload.get("ver") or 0) != (user.token_version or 0):
+        raise HTTPException(status_code=401, detail="Token MFA expiré (révoqué)")
     if not user.totp_enabled or not user.totp_secret:
         raise HTTPException(status_code=400, detail="MFA non configuré")
 

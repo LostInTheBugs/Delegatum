@@ -104,6 +104,39 @@ class TestMfaBypass:
         })
         assert resp.status_code == 401
 
+    def test_mfa_login_rejects_stale_token_after_revocation(self, client, db):
+        """Un token MFA émis avant révocation est refusé (ver mismatch)."""
+        org = create_org(db)
+        secret = generate_totp_secret()
+        user = create_user(
+            db, "mfa-revoke@test.com", "pass1234", org.id,
+            totp_enabled=True, totp_secret=secret,
+        )
+
+        # Step 1 : login → MFA token (ver=0)
+        cid, cans = fetch_captcha(client)
+        resp = client.post("/api/auth/login", json={
+            "email": "mfa-revoke@test.com",
+            "password": "pass1234",
+            "captcha_id": cid,
+            "captcha_answer": cans,
+        })
+        assert resp.status_code == 200
+        mfa_token = resp.json()["mfa_token"]
+
+        # Simuler une révocation de jetons (incrémente token_version → 1)
+        user.token_version = 1
+        db.commit()
+
+        # Step 2 : mfa_login avec l'ancien jeton → 401
+        totp_code = get_totp_code(secret)
+        resp = client.post("/api/auth/mfa/login", json={
+            "mfa_token": mfa_token,
+            "totp_code": totp_code,
+        })
+        assert resp.status_code == 401
+        assert "révoqué" in resp.json()["detail"].lower()
+
     def test_old_style_token_without_typ_rejected(self, client, db):
         """Un token sans claim typ (ancien format) est rejeté."""
         org = create_org(db)
