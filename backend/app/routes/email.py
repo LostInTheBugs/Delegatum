@@ -81,7 +81,6 @@ def _outbox_response(m: EmailOutbox) -> EmailOutboxResponse:
         exported_at=m.exported_at.isoformat() if m.exported_at else None,
         created_at=m.created_at.isoformat() if m.created_at else None,
         sent_at=m.sent_at.isoformat() if m.sent_at else None,
-        payload=m.payload,
     )
 
 
@@ -152,8 +151,7 @@ def list_outbox(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.account_type and current_user.account_type != AccountType.delegation:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
+    _require_admin(current_user)
     q = db.query(EmailOutbox).filter(EmailOutbox.organization_id == current_user.organization_id)
     if status_filter:
         q = q.filter(EmailOutbox.status == status_filter)
@@ -167,8 +165,7 @@ def download_eml(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.account_type and current_user.account_type != AccountType.delegation:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
+    _require_admin(current_user)
     msg = db.query(EmailOutbox).filter(
         EmailOutbox.id == email_id,
         EmailOutbox.organization_id == current_user.organization_id,
@@ -190,8 +187,7 @@ def retry_email(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.account_type and current_user.account_type != AccountType.delegation:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
+    _require_admin(current_user)
     msg = db.query(EmailOutbox).filter(
         EmailOutbox.id == email_id,
         EmailOutbox.organization_id == current_user.organization_id,
@@ -215,8 +211,7 @@ def cancel_email(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if current_user.account_type and current_user.account_type != AccountType.delegation:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Réservé aux comptes de délégation")
+    _require_admin(current_user)
     msg = db.query(EmailOutbox).filter(
         EmailOutbox.id == email_id,
         EmailOutbox.organization_id == current_user.organization_id,

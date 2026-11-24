@@ -377,6 +377,54 @@ class TestEmailOutboxExternal:
         assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.json()}"
 
 
+class TestEmailOutboxNonAdmin:
+    """Membres internes non-admins doivent être refusés sur les routes outbox."""
+
+    def test_non_admin_member_get_403(self, client):
+        """GET /api/emails → 403 pour membre non-admin (tom)."""
+        db = SessionLocal()
+        org = _make_org(db, "EmailTest4", 120)
+        _make_user(db, "admin@email4.lu", "pass1234", org, role="admin")
+        _make_user(db, "tom@email4.lu", "pass1234", org, role="member", delegue_role="membre")
+        db.close()
+        token = _login(client, "tom@email4.lu", "pass1234")
+        r = client.get("/api/emails", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.json()}"
+
+    def test_non_admin_member_download_403(self, client):
+        """GET /api/emails/1/download.eml → 403 pour membre non-admin."""
+        db = SessionLocal()
+        org = _make_org(db, "EmailTest5", 120)
+        _make_user(db, "admin@email5.lu", "pass1234", org, role="admin")
+        _make_user(db, "marc@email5.lu", "pass1234", org, role="member", delegue_role="membre")
+        db.close()
+        token = _login(client, "marc@email5.lu", "pass1234")
+        r = client.get("/api/emails/1/download.eml", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.json()}"
+
+    def test_non_admin_member_retry_403(self, client):
+        """POST /api/emails/1/retry → 403 pour membre non-admin."""
+        db = SessionLocal()
+        org = _make_org(db, "EmailTest6", 120)
+        _make_user(db, "admin@email6.lu", "pass1234", org, role="admin")
+        _make_user(db, "sophie@email6.lu", "pass1234", org, role="member", delegue_role="membre")
+        db.close()
+        token = _login(client, "sophie@email6.lu", "pass1234")
+        r = client.post(f"/api/emails/1/retry", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.json()}"
+
+    def test_non_admin_member_cancel_403(self, client):
+        """POST /api/emails/1/cancel → 403 pour membre non-admin."""
+        db = SessionLocal()
+        org = _make_org(db, "EmailTest7", 120)
+        _make_user(db, "admin@email7.lu", "pass1234", org, role="admin")
+        _make_user(db, "tom@email7.lu", "pass1234", org, role="member", delegue_role="membre")
+        db.close()
+        token = _login(client, "tom@email7.lu", "pass1234")
+        r = client.post(f"/api/emails/1/cancel", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.json()}"
+
+
 # ── Test organization.py members ──────────────────────────────────────
 
 

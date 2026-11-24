@@ -56,7 +56,6 @@ class EmailOutboxResponse(BaseModel):
     exported_at: Optional[str] = None
     created_at: Optional[str] = None
     sent_at: Optional[str] = None
-    payload: Optional[dict] = None
 
 
 class ShareLinkCreate(BaseModel):

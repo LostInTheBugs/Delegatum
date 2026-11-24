@@ -126,6 +126,19 @@ class TestOutbox:
             db.close()
         assert n == 0
 
+    def test_outbox_response_no_payload(self, client, org_with_users):
+        """La réponse list ne doit jamais contenir le champ payload (contient des codes secrets)."""
+        token = org_with_users["sophie_token"]
+        h = _setup_config(client, token)
+        client.post("/api/invitations", json={
+            "email": "nodelay@test.lu", "first_name": "No", "last_name": "Delay",
+            "delegue_status": "titulaire", "delegue_role": "membre",
+        }, headers=h)
+        msgs = client.get("/api/emails", headers=h).json()
+        assert len(msgs) >= 1
+        for msg in msgs:
+            assert "payload" not in msg, "payload ne doit jamais figurer dans la réponse API"
+
     def test_meeting_creates_invites_in_eml_mode(self, client, org_with_users):
         token = org_with_users["sophie_token"]
         h = _setup_config(client, token)
