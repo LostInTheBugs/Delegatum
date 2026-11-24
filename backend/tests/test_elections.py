@@ -100,7 +100,10 @@ def test_election_cycle_and_vote_anonymity(client, org_with_users):
         "full_name": "Candidat", "list_label": "Liste Libre",
     }, headers=_h(org_with_users["sophie_token"]))
     assert r.status_code == 201
-    # ouverture sans candidat éligible possible (au moins 1 candidat requis — ok ici)
+    # le candidat est inéligible (pas de dates) → dérogation requise
+    client.patch(f"/api/elections/{eid}", json={
+        "derogation_motivated": True, "derogation_reason": "Exception exceptionnelle"
+    }, headers=_h(org_with_users["sophie_token"]))
     assert client.post(f"/api/elections/{eid}/open", headers=_h(org_with_users["sophie_token"])).status_code == 200
 
     # vote avant/après ouverture : un autre scrutin d'abord
@@ -113,7 +116,10 @@ def test_election_cycle_and_vote_anonymity(client, org_with_users):
                     headers=_h(org_with_users["tom_token"]))
     assert r.status_code == 400
 
-    # ouverture avec au moins un candidat
+    # ouverture avec dérogation (C1 inéligible)
+    client.patch(f"/api/elections/{eid2}", json={
+        "derogation_motivated": True, "derogation_reason": "Test"
+    }, headers=_h(org_with_users["sophie_token"]))
     assert client.post(f"/api/elections/{eid2}/open", headers=_h(org_with_users["sophie_token"])).status_code == 200
 
     # tom vote
@@ -292,6 +298,10 @@ def test_concurrent_vote_prevents_double_ballot(client, org_with_users):
     }, headers=_h(org_with_users["sophie_token"]))
     assert r.status_code == 201
     cand_id = r.json()["id"]
+    # candidat inéligible → dérogation
+    client.patch(f"/api/elections/{eid}", json={
+        "derogation_motivated": True, "derogation_reason": "Exception"
+    }, headers=_h(org_with_users["sophie_token"]))
     assert client.post(f"/api/elections/{eid}/open", headers=_h(org_with_users["sophie_token"])).status_code == 200
 
     vote_payload = {"candidate_id": cand_id}

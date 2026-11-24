@@ -6,6 +6,8 @@ class ElectionCreate(BaseModel):
     election_date: str = Field(min_length=8)  # ISO date
     candidate_deadline: str | None = None
     notes: str | None = Field(default=None, max_length=1000)
+    derogation_motivated: bool = False
+    derogation_reason: str | None = Field(default=None, max_length=2000)
 
 
 class ElectionCandidateCreate(BaseModel):
@@ -33,11 +35,14 @@ class ElectionResponse(BaseModel):
     candidate_deadline: str | None = None
     status: str
     notes: str | None = None
+    derogation_motivated: bool = False
+    derogation_reason: str | None = None
     candidates: list[ElectionCandidateResponse] = []
     votes_count: int = 0
     has_voted: bool = False
     can_manage: bool = False
     created_by_name: str | None = None
+    ineligible_count: int = 0
 
 
 class ElectionVoteRequest(BaseModel):

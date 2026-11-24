@@ -21,9 +21,13 @@ export default function Elections() {
   const [err, setErr] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
 
+  // dérogation
+  const [derogateFor, setDerogateFor] = useState<number | null>(null)
+  const [derogationReason, setDerogationReason] = useState('')
+
   // création
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ title: '', election_date: '', candidate_deadline: '', notes: '' })
+  const [form, setForm] = useState({ title: '', election_date: '', candidate_deadline: '', notes: '', derogation_motivated: false, derogation_reason: '' })
 
   // candidat
   const [candFor, setCandFor] = useState<number | null>(null)
@@ -48,8 +52,16 @@ export default function Elections() {
   async function createElection(e: FormEvent) {
     e.preventDefault(); setErr(null); setMsg(null)
     try {
-      await api.createElection({ title: form.title, election_date: form.election_date, candidate_deadline: form.candidate_deadline || undefined, notes: form.notes || undefined })
-      setShowCreate(false); setForm({ title: '', election_date: '', candidate_deadline: '', notes: '' })
+      await api.createElection({
+        title: form.title,
+        election_date: form.election_date,
+        candidate_deadline: form.candidate_deadline || undefined,
+        notes: form.notes || undefined,
+        derogation_motivated: form.derogation_motivated,
+        derogation_reason: form.derogation_reason || undefined,
+      })
+      setShowCreate(false)
+      setForm({ title: '', election_date: '', candidate_deadline: '', notes: '', derogation_motivated: false, derogation_reason: '' })
       await load()
     } catch (ex: any) { setErr(ex.message) }
   }
@@ -81,7 +93,15 @@ export default function Elections() {
     try {
       await api.openElection(electionId)
       await load()
-    } catch (ex: any) { setErr(ex.message) }
+    } catch (ex: any) {
+      // Vérifier si c'est un refus d'inéligibilité
+      const detail = ex.detail
+      if (typeof detail === 'object' && detail?.ineligible_count) {
+        setErr(t('elections.ineligible_open') + ': ' + detail.message)
+      } else {
+        setErr(ex.message)
+      }
+    }
   }
 
   async function vote(electionId: number) {
@@ -183,6 +203,9 @@ export default function Elections() {
                 {e.status === 'announced' && e.can_manage && (
                   <>
                     <button className="btn" style={{ ...btnStyle, background: 'var(--blue)' }} onClick={() => downloadAffiche(e)}>🖨️ {t('elections.affiche')}</button>
+                    {e.ineligible_count > 0 && (
+                      <button className="btn" style={{ ...btnStyle, background: 'var(--orange)', color: '#fff' }} onClick={() => { setDerogateFor(e.id); setDerogationReason(e.derogation_reason || '') }}>⚠️ {t('elections.derogation')}</button>
+                    )}
                     <button className="btn" style={{ ...btnStyle, background: 'var(--green)', color: '#fff' }} onClick={() => open(e.id)}>🗳️ {t('elections.open')}</button>
                   </>
                 )}
@@ -225,6 +248,52 @@ export default function Elections() {
                   ))}
                 </tbody>
               </table>
+            )}
+
+            {/* Dérogation (bureau, phase annonce) */}
+            {e.status === 'announced' && e.can_manage && derogateFor === e.id && (
+              <div style={{ marginTop: 10 }}>
+                <p style={{ fontSize: '.85rem', fontWeight: 600 }}>{t('elections.derogation_title')}</p>
+                {e.ineligible_count > 0 && (
+                  <div style={{ background: 'var(--orange-light)', padding: 8, borderRadius: 6, marginBottom: 8, fontSize: '.82rem' }}>
+                    <strong>{e.ineligible_count}</strong> candidat(s) inéligible(s) détecté(s).
+                    {e.derogation_reason && <p style={{ marginTop: 4 }}><em>{t('elections.derogation_current')}: {e.derogation_reason}</em></p>}
+                  </div>
+                )}
+                <textarea
+                  rows={3}
+                  placeholder={t('elections.derogation_reason_ph')}
+                  value={derogationReason}
+                  onChange={ev => setDerogationReason(ev.target.value)}
+                  maxLength={2000}
+                  style={{ width: '100%', marginBottom: 8, padding: 6, fontSize: '.82rem', borderRadius: 4, border: '1px solid var(--gray-300)', fontFamily: 'inherit', boxSizing: 'border-box' }}
+                />
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <label style={{ fontSize: '.82rem', display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <input type="checkbox" checked={e.derogation_motivated} readOnly />
+                    {t('elections.derogation_enable')}
+                  </label>
+                  <button
+                    className="btn btn-primary"
+                    style={{ fontSize: '.78rem', padding: '4px 10px' }}
+                    disabled={!derogationReason.trim()}
+                    onClick={async () => {
+                      try {
+                        await api.updateElection(e.id, {
+                          derogation_motivated: true,
+                          derogation_reason: derogationReason,
+                        })
+                        setDerogateFor(null)
+                        setMsg(t('elections.derogation_saved'))
+                        await load()
+                      } catch (ex: any) { setErr(ex.message) }
+                    }}
+                  >
+                    {t('elections.derogation_save')}
+                  </button>
+                  <button className="btn" style={{ fontSize: '.78rem', padding: '4px 10px', background: 'var(--gray-300)' }} onClick={() => setDerogateFor(null)}>{t('organigramme.cancel')}</button>
+                </div>
+              </div>
             )}
 
             {/* Ajout candidat (bureau, phase annonce) */}

@@ -26,6 +26,7 @@ from app.schemas.election import (
     ElectionResponse, ElectionVoteRequest, ElectionResultsResponse,
     ElectionResultList,
 )
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/api", tags=["elections"], dependencies=[Depends(require_access("elections"))])
 
@@ -81,15 +82,20 @@ def _election_to_response(e: Election, current_user: User, db: Session):
         t.count for t in db.query(ElectionVoteTally).filter(ElectionVoteTally.election_id == e.id).all()
     )
     name = f"{e.created_by.first_name} {e.created_by.last_name}".strip() if e.created_by else None
+    ineligible_count = sum(
+        1 for c in candidates if not _candidate_eligibility(c, e)[0]
+    )
     return ElectionResponse(
         id=e.id, title=e.title,
         election_date=e.election_date.isoformat() if e.election_date else None,
         candidate_deadline=e.candidate_deadline.isoformat() if e.candidate_deadline else None,
         status=e.status.value, notes=e.notes,
+        derogation_motivated=e.derogation_motivated, derogation_reason=e.derogation_reason,
         candidates=[_candidate_to_response(c, e) for c in candidates],
         votes_count=votes_count, has_voted=has_voted,
         can_manage=_is_bureau(current_user),
         created_by_name=name,
+        ineligible_count=ineligible_count,
     )
 
 
@@ -205,6 +211,41 @@ def remove_candidate(
     return None
 
 
+# ── Mise à jour ───────────────────────────────────────────────────────
+
+class ElectionUpdate(BaseModel):
+    derogation_motivated: bool | None = None
+    derogation_reason: str | None = None
+    notes: str | None = None
+
+
+@router.patch("/elections/{election_id}", response_model=ElectionResponse)
+def update_election(
+    election_id: int,
+    body: ElectionUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Mise à jour de champs optionnels (dérégation, notes)."""
+    if not _is_bureau(current_user):
+        raise HTTPException(status_code=403, detail="Réservé au bureau de la délégation")
+    e = db.query(Election).filter(
+        Election.id == election_id,
+        Election.organization_id == current_user.organization_id,
+    ).first()
+    if e is None:
+        raise HTTPException(status_code=404, detail="Élection introuvable")
+    if body.derogation_motivated is not None:
+        e.derogation_motivated = body.derogation_motivated
+    if body.derogation_reason is not None:
+        e.derogation_reason = body.derogation_reason
+    if body.notes is not None:
+        e.notes = body.notes
+    db.commit()
+    db.refresh(e)
+    return _election_to_response(e, current_user, db)
+
+
 # ── Scrutin ─────────────────────────────────────────────────────────
 
 @router.post("/elections/{election_id}/vote", status_code=201)
@@ -265,7 +306,12 @@ def open_election(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Ouvre le scrutin (candidatures closes, vote possible)."""
+    """Ouvre le scrutin (candidatures closes, vote possible).
+
+    Si des candidats sont inéligibles, le bureau doit choisir :
+    - bloquer l'ouverture (sans dérogation), ou
+    - ouvrir avec dérogation motivée (derogation_motivated=True + raison).
+    """
     if not _is_bureau(current_user):
         raise HTTPException(status_code=403, detail="Réservé au bureau de la délégation")
     e = db.query(Election).filter(
@@ -278,6 +324,31 @@ def open_election(
         raise HTTPException(status_code=400, detail="Statut incompatible")
     if db.query(ElectionCandidate).filter(ElectionCandidate.election_id == e.id).count() == 0:
         raise HTTPException(status_code=400, detail="Aucun candidat — ajoutez au moins un candidat")
+
+    # Vérifier les candidats inéligibles
+    ineligible = [
+        c for c in e.candidates if not _candidate_eligibility(c, e)[0]
+    ]
+    if ineligible:
+        if not e.derogation_motivated:
+            reasons = "; ".join(_candidate_eligibility(c, e)[1] for c in ineligible)
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "ineligible_count": len(ineligible),
+                    "ineligible_reasons": [
+                        {"id": c.id, "name": c.full_name, "reason": _candidate_eligibility(c, e)[1]}
+                        for c in ineligible
+                    ],
+                    "message": f"{len(ineligible)} candidat(s) inéligible(s) — dérogation motivée requise",
+                },
+            )
+        if not e.derogation_reason or not e.derogation_reason.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Dérogation motivée : le motif est obligatoire",
+            )
+
     e.status = ElectionStatus.voting
     db.commit()
     db.refresh(e)

@@ -30,6 +30,8 @@ class Election(Base):
     election_date = Column(DateTime(timezone=True), nullable=False)
     candidate_deadline = Column(DateTime(timezone=True), nullable=True)
     status = Column(SAEnum(ElectionStatus), default=ElectionStatus.announced, nullable=False)
+    derogation_motivated = Column(Boolean, default=False, nullable=False)
+    derogation_reason = Column(String(2000), nullable=True)
     notes = Column(String(1000), nullable=True)
     created_by_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

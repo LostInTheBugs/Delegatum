@@ -1,4 +1,4 @@
-const API_BASE = '/api'
+export const API_BASE = '/api'
 
 interface UserResponse {
   id: number
@@ -246,11 +246,14 @@ export interface Election {
   candidate_deadline: string | null
   status: 'announced' | 'voting' | 'closed'
   notes: string | null
+  derogation_motivated: boolean
+  derogation_reason: string | null
   candidates: ElectionCandidate[]
   votes_count: number
   has_voted: boolean
   can_manage: boolean
   created_by_name: string | null
+  ineligible_count: number
 }
 
 export interface ElectionResultList {
@@ -276,8 +279,12 @@ export function listElections(): Promise<Election[]> {
   return request('/elections')
 }
 
-export function createElection(data: { title: string; election_date: string; candidate_deadline?: string; notes?: string }): Promise<Election> {
+export function createElection(data: { title: string; election_date: string; candidate_deadline?: string; notes?: string; derogation_motivated?: boolean; derogation_reason?: string }): Promise<Election> {
   return request('/elections', { method: 'POST', body: JSON.stringify(data) })
+}
+
+export function updateElection(electionId: number, data: { derogation_motivated?: boolean; derogation_reason?: string; notes?: string }): Promise<Election> {
+  return request(`/elections/${electionId}`, { method: 'PATCH', body: JSON.stringify(data) })
 }
 
 export function addCandidate(electionId: number, data: {
