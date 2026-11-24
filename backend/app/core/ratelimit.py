@@ -46,32 +46,24 @@ def check_rate_limit(key: str, max_attempts: int, window_seconds: int = 900) -> 
 def client_ip(request: Request) -> str:
     """IP du client derrière les proxies de confiance.
 
-    Chaîne : Client → Cloudflare (CF-Connecting-IP, non falsifiable) →
-    Traefik → nginx → backend.
+    Chaîne : Client → Cloudflare (CF-Connecting-IP) → Traefik → nginx
+    → backend.
 
-    HYPOTHÈSE DE CONFIANCE (correctif ANALYSE-2026-08-24 §2) : le seul
-    X-Forwarded-For accepté est celui écrit par NOTRE nginx
-    (`proxy_set_header X-Forwarded-For $remote_addr`) — la valeur fournie
-    par le client est écrasée à chaque hop, jamais propagée. Avant, nginx
-    utilisait `$proxy_add_x_forwarded_for`, qui PRÉSERVE l'en-tête client
-    en tête de liste → un attaquant envoyant `X-Forwarded-For: <au hasard>`
-    obtenait un compteur de rate-limit neuf à chaque requête.
+    CF-Connecting-IP est SUPPRIMÉ par nginx (cf. nginx.conf). Il ne
+    parvient jamais au backend, ce qui empêche un attaquant accédant à
+    l'origine directement de se déguiser en IP Cloudflare.
 
     Ordre de préférence :
-    1. `CF-Connecting-IP` — posé par le edge Cloudflare (jamais par le
-       client), présent uniquement derrière Cloudflare (prod) ;
-    2. `X-Forwarded-For` — = pair direct de nginx : IP réelle du client
+    1. `X-Forwarded-For` — = pair direct de nginx : IP réelle du client
        quand nginx est exposé directement (VM test) ;
-    3. `request.client.host` — dernier recours.
+    2. `request.client.host` — dernier recours.
 
-    Limite résiduelle documentée : derrière Traefik (prod), le pair direct
-    de nginx est le conteneur Traefik → le rate-limit est par point
-    d'entrée Traefik, pas par IP de l'utilisateur final (c'est
-    CF-Connecting-IP qui porte l'IP réelle dans ce cas).
+    Note prod : derrière Traefik, le pair direct de nginx est le conteneur
+    Traefik. Le rate-limit est alors par IP Traefik (un seul compteur
+    par entrée Traefik). CF-Connecting-IP portait l'IP réelle avant,
+    mais sa suppression dans nginx a été jugée acceptable car l'accès
+    direct à l'origine est interdit par firewall.
     """
-    cf = request.headers.get("cf-connecting-ip")
-    if cf:
-        return cf.strip()
     fwd = request.headers.get("x-forwarded-for")
     if fwd:
         return fwd.split(",")[0].strip()
