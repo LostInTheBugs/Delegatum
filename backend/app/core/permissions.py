@@ -52,26 +52,30 @@ def _internal_write_modules() -> dict[str, str]:
 def _exterior_defaults() -> dict[str, dict[str, str]]:
     """Permissions pour les rôles extérieurs (inchangées)."""
     return {
-        # Salarié désigné : lecture sécurité + activités
+        # Salarié désigné : lecture sécurité + activités + élections
         "salarie_designe": {
             "safety_register": AccessLevel.read.value,
             "delegate_activities": AccessLevel.read.value,
+            "elections": AccessLevel.read.value,
         },
-        # RH : lecture sécurité + activités + stats
+        # RH : lecture sécurité + activités + stats + élections
         "rh": {
             "safety_register": AccessLevel.read.value,
             "delegate_activities": AccessLevel.read.value,
             "workforce_stats": AccessLevel.read.value,
+            "elections": AccessLevel.read.value,
         },
-        # ITM : lecture sécurité + conformité + activités
+        # ITM : lecture sécurité + conformité + activités + élections
         "itm": {
             "safety_register": AccessLevel.read.value,
             "compliance": AccessLevel.read.value,
             "delegate_activities": AccessLevel.read.value,
+            "elections": AccessLevel.read.value,
         },
-        # Police : lecture sécurité uniquement
+        # Police : lecture sécurité + élections
         "police": {
             "safety_register": AccessLevel.read.value,
+            "elections": AccessLevel.read.value,
         },
     }
 

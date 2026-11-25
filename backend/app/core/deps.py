@@ -7,6 +7,7 @@ from app.core.modules import enabled_modules_of
 from app.core.permissions import effective_level, is_access_expired
 from app.core.security import decode_access_token
 from app.models import User, UserRole
+from typing import Optional
 
 security = HTTPBearer()
 
@@ -35,11 +36,12 @@ def require_module(module: str):
     return _check
 
 
-def require_access(module: str):
-    """Dépendance RBAC : module actif + niveau d'accès selon méthode HTTP.
+def require_access(module: str, level: Optional[str] = None):
+    """Dépendance RBAC : module actif + niveau d'accès.
 
     1. Vérifie que le module est activé pour l'organisation (403 « Module désactivé »).
-    2. Détermine le niveau requis : GET/HEAD → « read », POST/PUT/PATCH/DELETE → « write ».
+    2. Si `level` est fourni, l'utilise directement. Sinon, détermine le niveau requis
+       selon la méthode HTTP : GET/HEAD → « read », POST/PUT/PATCH/DELETE → « write ».
     3. Compare au niveau effectif de l'utilisateur via effective_level()
        (403 « Droits insuffisants » si insuffisant).
     """
@@ -57,8 +59,10 @@ def require_access(module: str):
             if org is None or module not in enabled_modules_of(org.enabled_modules):
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Module désactivé")
 
-        # 2. Niveau requis selon la méthode HTTP
-        if request.method in _WRITE_METHODS:
+        # 2. Niveau requis : explicite ou déduit de la méthode HTTP
+        if level is not None:
+            required = level
+        elif request.method in _WRITE_METHODS:
             required = "write"
         else:
             required = "read"

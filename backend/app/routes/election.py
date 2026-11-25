@@ -28,7 +28,7 @@ from app.schemas.election import (
 )
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/api", tags=["elections"], dependencies=[Depends(require_access("elections"))])
+router = APIRouter(prefix="/api", tags=["elections"], dependencies=[Depends(require_access("elections", "read"))])
 
 MIN_AGE_DAYS = 18 * 365.25
 MIN_SENIORITY_DAYS = 12 * 30.44  # 12 mois
@@ -130,7 +130,7 @@ def list_elections(
     return [_election_to_response(e, current_user, db) for e in elections]
 
 
-@router.post("/elections", response_model=ElectionResponse, status_code=201)
+@router.post("/elections", response_model=ElectionResponse, status_code=201, dependencies=[Depends(require_access("elections", "write"))])
 def create_election(
     body: ElectionCreate,
     current_user: User = Depends(get_current_user),
@@ -152,7 +152,7 @@ def create_election(
     return _election_to_response(e, current_user, db)
 
 
-@router.post("/elections/{election_id}/candidates", response_model=ElectionCandidateResponse, status_code=201)
+@router.post("/elections/{election_id}/candidates", response_model=ElectionCandidateResponse, status_code=201, dependencies=[Depends(require_access("elections", "write"))])
 def add_candidate(
     election_id: int,
     body: ElectionCandidateCreate,
@@ -184,7 +184,7 @@ def add_candidate(
     return _candidate_to_response(c, e)
 
 
-@router.delete("/elections/{election_id}/candidates/{candidate_id}", status_code=204)
+@router.delete("/elections/{election_id}/candidates/{candidate_id}", status_code=204, dependencies=[Depends(require_access("elections", "write"))])
 def remove_candidate(
     election_id: int,
     candidate_id: int,
@@ -219,7 +219,7 @@ class ElectionUpdate(BaseModel):
     notes: str | None = None
 
 
-@router.patch("/elections/{election_id}", response_model=ElectionResponse)
+@router.patch("/elections/{election_id}", response_model=ElectionResponse, dependencies=[Depends(require_access("elections", "write"))])
 def update_election(
     election_id: int,
     body: ElectionUpdate,
@@ -300,7 +300,7 @@ def cast_vote(
     return {"ok": True, "message": "Vote enregistré"}
 
 
-@router.post("/elections/{election_id}/open", response_model=ElectionResponse)
+@router.post("/elections/{election_id}/open", response_model=ElectionResponse, dependencies=[Depends(require_access("elections", "write"))])
 def open_election(
     election_id: int,
     current_user: User = Depends(get_current_user),
@@ -355,7 +355,7 @@ def open_election(
     return _election_to_response(e, current_user, db)
 
 
-@router.post("/elections/{election_id}/close", response_model=ElectionResultsResponse)
+@router.post("/elections/{election_id}/close", response_model=ElectionResultsResponse, dependencies=[Depends(require_access("elections", "write"))])
 def close_election(
     election_id: int,
     current_user: User = Depends(get_current_user),

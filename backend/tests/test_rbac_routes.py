@@ -9,7 +9,7 @@ Fixtures :
 - `_login` helper identique à conftest pour obtenir des tokens API
 
 Testés :
-- itm : safety_register read=200, POST safety_register=403, meetings=403, elections=403, compliance read=200
+- itm : safety_register read=200, POST safety_register=403, meetings=403, elections read=200, compliance read=200
 - police : delegate_activities=403
 - rh : workforce_stats read=200, POST workforce_stats=403
 - Permission matrix update → itm compliance devient none → GET compliance overview=403
@@ -135,7 +135,7 @@ def _setup_external_accounts(db, org):
 
 
 class TestITM:
-    """itm : safety_register=read, compliance=read, delegate_activities=read, meetings=none"""
+    """itm : safety_register=read, compliance=read, delegate_activities=read, meetings=none, elections=read"""
 
     def test_itm_safety_register_get(self, client):
         """GET /api/safety-register → 200 pour itm."""
@@ -187,8 +187,8 @@ class TestITM:
         r = client.get("/api/meetings", headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.json()}"
 
-    def test_itm_elections_403(self, client):
-        """GET /api/elections → 403 pour itm (meetings=none, elections=none)."""
+    def test_itm_elections_read(self, client):
+        """GET /api/elections → 200 pour itm (elections=read)."""
         db = SessionLocal()
         org = _make_org(db, "ITMTest5", 50)
         _make_user(db, "admin@itm5.lu", "pass1234", org, role="admin")
@@ -197,6 +197,20 @@ class TestITM:
         db.close()
         token = _login(client, "itm@test.lu", "pass1234")
         r = client.get("/api/elections", headers={"Authorization": f"Bearer {token}"})
+        assert r.status_code == 200, f"Expected 200, got {r.status_code}: {r.json()}"
+
+    def test_itm_elections_post_403(self, client):
+        """POST /api/elections → 403 pour itm (elections=read, not write)."""
+        db = SessionLocal()
+        org = _make_org(db, "ITMTest5b", 50)
+        _make_user(db, "admin@itm5b.lu", "pass1234", org, role="admin")
+        init_default_permissions(org.id, db)
+        itm, _, _ = _setup_external_accounts(db, org)
+        db.close()
+        token = _login(client, "itm@test.lu", "pass1234")
+        r = client.post("/api/elections", json={
+            "name": "Test Election", "voting_method": "proportional"
+        }, headers={"Authorization": f"Bearer {token}"})
         assert r.status_code == 403, f"Expected 403, got {r.status_code}: {r.json()}"
 
     def test_itm_compliance_read(self, client):
