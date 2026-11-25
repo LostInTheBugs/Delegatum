@@ -53,20 +53,20 @@ def client_ip(request: Request) -> str:
     parvient jamais au backend, ce qui empêche un attaquant accédant à
     l'origine directement de se déguiser en IP Cloudflare.
 
-    Ordre de préférence :
-    1. `X-Forwarded-For` — = pair direct de nginx : IP réelle du client
-       quand nginx est exposé directement (VM test) ;
-    2. `request.client.host` — dernier recours.
+    X-Forwarded-For est COMPLÉTÉ par nginx (append, pas overwrite) :
+    nginx ajoute son IP à la fin de la chaîne. L'ordre est :
+    `[traefik_ip, client_ip, nginx_ip]`.
 
-    Note prod : derrière Traefik, le pair direct de nginx est le conteneur
-    Traefik. Le rate-limit est alors par IP Traefik (un seul compteur
-    par entrée Traefik). CF-Connecting-IP portait l'IP réelle avant,
-    mais sa suppression dans nginx a été jugée acceptable car l'accès
-    direct à l'origine est interdit par firewall.
+    On lit la dernière valeur (droite) : c'est l'IP la plus récente
+    dans la chaîne de proxies, donc l'IP réelle du client quand
+    nginx est le dernier proxy avant le backend.
+
+    Derrière Traefik, chaque client a maintenant sa propre clé de
+    rate-limit (traefik_ip, client_ip, nginx_ip → last = client_ip).
     """
     fwd = request.headers.get("x-forwarded-for")
     if fwd:
-        return fwd.split(",")[0].strip()
+        return fwd.split(",")[-1].strip()
     if request.client:
         return request.client.host
     return "unknown"

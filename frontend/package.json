@@ -1,7 +1,7 @@
 {
   "name": "delegatum-frontend",
   "private": true,
-  "version": "2026.11.006",
+  "version": "2026.11.006-c1",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -7,6 +7,11 @@ All notable changes to this project are documented in this file.
 ### 🔒 Sécurité
 - **MFA token version check** — `/mfa/login` compare maintenant le claim `ver` du jeton temporaire MFA avec `user.token_version` actuel. Un jeton émis avant une révocation de jetons (via `/auth/revoke-user` ou suppression membre) est immédiatement invalidé, empêchant un défi MFA déjà ouvert de survivre à une révocation.
 
+## [2026.11.006] — 2026-11-25
+
+### 🔒 Sécurité
+- **Rate-limit par IP réelle derrière Traefik** — le pair direct de nginx (Traefik) avait le même compteur pour tous les clients. Nginx complète désormais l'en-tête `X-Forwarded-For` (append au lieu d'écraser) ; le backend lit la dernière valeur de la chaîne → IP réelle du client. Chaque client a sa propre clé de rate-limit, une rafale de tentatives ne bloque plus les connexions de toute l'instance.
+
 ## [2026.11.004] — 2026-11-24
 
 ### 🔒 Sécurité
