@@ -12,7 +12,7 @@ Create Date: 2026-11-24
 from typing import Sequence, Union
 
 from alembic import op
-
+import sqlalchemy as sa
 # revision identifiers, used by Alembic.
 revision: str = "20261124_0023_election_eligibility_derogation"
 down_revision: Union[str, None] = "20261124_0022_ballot_unique_constraint"
@@ -23,10 +23,10 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     with op.batch_alter_table("elections") as batch_op:
         batch_op.add_column(
-            op.Column("derogation_motivated", op.Boolean(), nullable=False, server_default="0")
+            sa.Column("derogation_motivated", sa.Boolean(), nullable=False, server_default="0")
         )
         batch_op.add_column(
-            op.Column("derogation_reason", op.String(2000), nullable=True)
+            sa.Column("derogation_reason", sa.String(2000), nullable=True)
         )
 
 

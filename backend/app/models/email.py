@@ -18,11 +18,12 @@ chiffre la DEK sous une clé dérivée d'un code de lecture saisi par la
 direction, stocke l'enveloppe côté serveur, et la direction déchiffre dans
 SON navigateur à partir du code. Le serveur ne détient que l'enveloppe.
 """
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, JSON, Enum as SAEnum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Text, JSON, Enum as SAEnum, event
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
 
+from app.core.crypto import decrypt_secret, encrypt_secret, needs_migration
 from app.core.database import Base
 
 
@@ -73,9 +74,39 @@ class EmailConfig(Base):
     smtp_host = Column(String(300), nullable=True)
     smtp_port = Column(Integer, default=587, nullable=False)
     smtp_user = Column(String(300), nullable=True)
-    smtp_password = Column(String(500), nullable=True)  # stocké en clair côté serveur (config org) ; masqué à l'affichage
+    _smtp_password = Column(String(500), nullable=True)  # chiffré AES-256-GCM (nom interne, ne pas utiliser directement)
     smtp_use_tls = Column(Boolean, default=True, nullable=False)   # STARTTLS (port 587)
     smtp_use_ssl = Column(Boolean, default=False, nullable=False)  # SSL direct (port 465)
+
+    @property
+    def smtp_password(self) -> str | None:
+        """Mot de passe SMTP déchiffré (lecture seule).
+
+        Les appels écriture doivent utiliser le setter.
+        """
+        raw: str | None = getattr(self, "_smtp_password", None)
+        if raw is None:
+            return None
+        # Si encore en clair (migration en cours ou import manuel),
+        # on le retourne tel quel — le setter le chiffrera au prochain update.
+        if needs_migration(raw):
+            return raw
+        return decrypt_secret(raw)
+
+    @smtp_password.setter
+    def smtp_password(self, value: str | None) -> None:
+        """Stocke le mot de passe chiffré.
+
+        Si *value* est déjà chiffré (format nonce:ciphertext), il n'est
+        pas re-chiffré — pratique pour les réécritures.
+        """
+        if value is None:
+            self._smtp_password = None  # type: ignore[assignment]
+        elif needs_migration(value):
+            self._smtp_password = encrypt_secret(value)  # type: ignore[assignment]
+        else:
+            # Déjà au format chiffré → stockage direct
+            self._smtp_password = value  # type: ignore[assignment]
 
     # Adresse email de la direction (reçoit convocations et PV partagés)
     direction_email = Column(String(300), nullable=True)
