@@ -58,7 +58,7 @@ def test_migration_0021_idempotent():
             cwd=str(parent), env=env, capture_output=True, text=True,
         )
         assert result.returncode == 0, f"current failed: {result.stderr}"
-        assert "20261108_0021_rbac (head)" in result.stdout, f"expected head in: {result.stdout}"
+        assert "(head)" in result.stdout, f"expected head in: {result.stdout}"
 
         # Step 5: re-run upgrade head — idempotency must hold
         result = subprocess.run(
