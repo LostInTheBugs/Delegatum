@@ -15,13 +15,22 @@ from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 def _aes_key() -> bytes:
     secret = os.environ.get("SD_SECRET_KEY", "")
     if not secret:
-        return b"\x00" * 32  # fallback — ne jamais arriver en prod
-    # Si c'est un hex string, le décoder ; sinon le hasher
-    try:
-        return bytes.fromhex(secret[:64])
-    except ValueError:
-        import hashlib
-        return hashlib.sha256(secret.encode()).digest()[:32]
+        raise RuntimeError(
+            "SD_SECRET_KEY est absente — impossible de dériver la clé AES. "
+            "Définissez la variable d'environnement SD_SECRET_KEY."
+        )
+    # Si c'est un hex string d'au moins 64 chars (32+ bytes), le décoder
+    # sur les 64 premiers caractères ; sinon le hasher pour obtenir
+    # exactement 32 bytes.
+    # Un hex plus court (ex. 32 chars → 16 bytes) est refusé :
+    # il produirait une clé AES de taille invalide.
+    if len(secret) >= 64:
+        try:
+            return bytes.fromhex(secret[:64])
+        except ValueError:
+            pass  # pas un hex valide → hasher ci-dessous
+    import hashlib
+    return hashlib.sha256(secret.encode()).digest()
 
 
 def encrypt_secret(plaintext: str) -> str:

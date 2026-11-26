@@ -46,8 +46,7 @@ def check_rate_limit(key: str, max_attempts: int, window_seconds: int = 900) -> 
 def client_ip(request: Request) -> str:
     """IP du client derrière les proxies de confiance.
 
-    Chaîne : Client → Cloudflare (CF-Connecting-IP) → Traefik → nginx
-    → backend.
+    Chaîne : Client -> Traefik -> nginx -> backend.
 
     CF-Connecting-IP est SUPPRIMÉ par nginx (cf. nginx.conf). Il ne
     parvient jamais au backend, ce qui empêche un attaquant accédant à
@@ -55,14 +54,10 @@ def client_ip(request: Request) -> str:
 
     X-Forwarded-For est COMPLÉTÉ par nginx (append, pas overwrite) :
     nginx ajoute son IP à la fin de la chaîne. L'ordre est :
-    `[traefik_ip, client_ip, nginx_ip]`.
+    `[client_ip, nginx_ip]`.
 
     On lit la dernière valeur (droite) : c'est l'IP la plus récente
-    dans la chaîne de proxies, donc l'IP réelle du client quand
-    nginx est le dernier proxy avant le backend.
-
-    Derrière Traefik, chaque client a maintenant sa propre clé de
-    rate-limit (traefik_ip, client_ip, nginx_ip → last = client_ip).
+    dans la chaîne de proxies, donc l'IP réelle du client.
     """
     fwd = request.headers.get("x-forwarded-for")
     if fwd:
