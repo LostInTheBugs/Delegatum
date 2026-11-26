@@ -8,7 +8,7 @@ Management tool for **staff delegations** in Luxembourg, inspired by the Labour 
 
 🌍 Français : [README.fr.md](README.fr.md) · Deutsch : [README.de.md](README.de.md) · Lëtzebuergesch : [README.lb.md](README.lb.md)
 
-Current version: **2026.11.010** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
+Current version: **2026.11.011** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
 
 ## Features
 
@@ -136,6 +136,8 @@ In a delegate-only profile (`sst`, `egalite`, or `sst,egalite`), the following m
 
 - 🔒 **Passwords**: bcrypt directly (no unmaintained passlib), passwords over 72 bytes rejected explicitly (no silent bcrypt truncation), Argon2id for invitation codes.
 - 🔑 **JWT signing key guard**: startup is refused when `SD_SECRET_KEY` is missing, shorter than 32 characters, or equal to a known example value — a deployment forgetting its `.env` cannot silently run with forgeable tokens.
+- 🔒 **AES encryption key validation** (2026.11.011): `_aes_key()` no longer falls back to a null key; raises `RuntimeError` if `SD_SECRET_KEY` is absent. Accepts hex ≥ 64 chars (decodes first 64 bytes); short hex or non-hex falls through to SHA-256 hash guaranteeing exactly 32 bytes. Prevents silent encryption with zeroed keys.
+- 🌐 **X-Forwarded-For proxy chain fix** (2026.11.011): corrected from prepend to append (`$http_x_forwarded_for, $remote_addr`) so the chain Client → Traefik → nginx → backend preserves the client IP as the last element, matching the backend's `client_ip()` reader.
 
 ## Access rights (RBAC)
 
