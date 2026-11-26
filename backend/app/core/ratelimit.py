@@ -46,22 +46,23 @@ def check_rate_limit(key: str, max_attempts: int, window_seconds: int = 900) -> 
 def client_ip(request: Request) -> str:
     """IP du client derrière les proxies de confiance.
 
-    Chaîne : Client -> Traefik -> nginx -> backend.
+    Chaîne : Client -> Cloudflare -> Traefik -> nginx -> backend.
 
-    CF-Connecting-IP est SUPPRIMÉ par nginx (cf. nginx.conf). Il ne
-    parvient jamais au backend, ce qui empêche un attaquant accédant à
-    l'origine directement de se déguiser en IP Cloudflare.
-
-    X-Forwarded-For est COMPLÉTÉ par nginx (append, pas overwrite) :
-    nginx ajoute son IP à la fin de la chaîne. L'ordre est :
-    `[client_ip, nginx_ip]`.
-
-    On lit la dernière valeur (droite) : c'est l'IP la plus récente
-    dans la chaîne de proxies, donc l'IP réelle du client.
+    1. X-Real-Client-IP : copié par nginx depuis CF-Connecting-IP
+       (Cloudflare edge). Supprimé après copie pour éviter le spoofing
+       par un attaquant accédant à l'origine directement.
+    2. X-Forwarded-For : première valeur (gauche) = IP du premier proxy
+       de confiance (Traefik), puis les proxies suivants.
+    3. request.client.host : connexion directe (pas de proxy).
     """
+    # Priorité : CF-Connecting-IP (via nginx X-Real-Client-IP)
+    real_client = request.headers.get("x-real-client-ip")
+    if real_client:
+        return real_client.strip()
+    # Fallback : X-Forwarded-For, première valeur
     fwd = request.headers.get("x-forwarded-for")
     if fwd:
-        return fwd.split(",")[-1].strip()
+        return fwd.split(",")[0].strip()
     if request.client:
         return request.client.host
     return "unknown"
