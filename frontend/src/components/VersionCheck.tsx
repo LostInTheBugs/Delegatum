@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 
 /** Version locale (synchronisée avec le footer / les releases). */
-const LOCAL_VERSION = '2026.11.009'
+const LOCAL_VERSION = '2026.11.010'
 
 function cmpVersions(a: string, b: string): number {
   const clean = (v: string) => v.replace(/^v/, '')

@@ -3,6 +3,9 @@ name: desktop-build
 on:
   workflow_dispatch:
   push:
+    tags:
+      - "20[0-9][0-9].[0-9][0-9].[0-9][0-9][0-9]"
+      - "20[0-9][0-9].[0-9][0-9].[0-9][0-9][0-9]-c*"
     paths:
       - 'desktop/**'
       - '.github/workflows/desktop-build.yml'
@@ -105,6 +108,17 @@ jobs:
           name: DelegatumDesktop-windows
           path: Delegatum-Windows.zip
           retention-days: 90
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: Delegatum-Windows.zip
+          asset_name: Delegatum-Windows.zip
+          tag: ${{ github.ref_name }}
+          overwrite: true
+          body: "Delegatum Desktop for Windows — unzip and run Delegatum.exe"
 
   macos:
     runs-on: macos-latest      # arm64 (Apple Silicon)
@@ -209,3 +223,14 @@ jobs:
           name: DelegatumDesktop-macos
           path: Delegatum-macOS.zip
           retention-days: 90
+
+      - name: Upload to release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: Delegatum-macOS.zip
+          asset_name: Delegatum-macOS.zip
+          tag: ${{ github.ref_name }}
+          overwrite: true
+          body: "Delegatum Desktop for macOS — right-click Delegatum.app → Open, then double-click"
