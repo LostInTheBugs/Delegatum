@@ -25,7 +25,8 @@ async def reject_direct_access(request: Request, call_next):
         return await call_next(request)
 
     # Si X-Real-Client-IP est absent, c'est un accès direct
-    if not request.headers.get("x-real-client-ip"):
+    # Exclure les endpoints de santé pour permettre les monitoring checks
+    if not request.headers.get("x-real-client-ip") and not request.url.path.startswith("/api/health"):
         return JSONResponse(
             status_code=403,
             content={"detail": "Accès direct au backend refusé — passez par nginx"},
