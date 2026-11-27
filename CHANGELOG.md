@@ -2,7 +2,27 @@
 
 All notable changes to this project are documented in this file.
 
-## [2026.11.005] — 2026-11-24
+## [2026.11.012] — 2026-11-27
+
+### 🔒 Sécurité
+- **Anti-spoofing `CF-Connecting-IP`** — Traefik supprime désormais l'en-tête `CF-Connecting-IP` fourni par le client (middleware `sd-strip-cf`). Seul Cloudflare ajoute cet en-tête légitimement, empêchant un client accédant directement à l'origin (contournant Cloudflare) de falsifier son adresse IP. Sans ce correctif, l'origin `87.106.129.203` était accessible directement et le spoofing de `CF-Connecting-IP` permettait de contourner le middleware `reject_direct_access` du backend.
+- **Tests proxy** — ajout de `TestProxySecurity` vérifiant le comportement du middleware `X-Real-Client-IP` (403 sans header, exempté `/api/health`).
+
+### 🔧 Correctif
+- **Alignement versions frontend** — `Footer.tsx` et `VersionCheck.tsx` alignés sur `2026.11.011` → `2026.11.012`.
+
+## [2026.11.011] — 2026-11-27
+
+### 🔒 Sécurité
+- **Clé AES non nulle** — `_aes_key()` refuse désormais le démarrage avec une clé vide/nulle (`RuntimeError`). Accepte hex ≥ 64 chars (décodage des 64 premiers octets) ; hex court ou non-hex passe par SHA-256 pour garantir 32 octets exactement.
+- **Gardien clé JWT** — refus du démarrage si `SD_SECRET_KEY` est absent, court (<32 caractères) ou égal à une valeur d'exemple connue.
+- **Validation mot de passe** — bcrypt refuse explicitement > 72 octets (pas de troncation silencieuse).
+- **Exemption `/api/health`** — le middleware `reject_direct_access` ne bloque plus `/api/health` (check de santé public).
+- **Preservation `SD_SECRET_KEY`** — fixture `clean_env` des tests conserve la variable d'environnement `SD_SECRET_KEY` pour l'import de `main.py`.
+
+### 🔧 Correctif
+- **CI tests** — injection `SD_TEST_MODE` dans `.github/workflows/tests.yml`, timeouts ajustés.
+
 
 ### 🔒 Sécurité
 - **MFA token version check** — `/mfa/login` compare maintenant le claim `ver` du jeton temporaire MFA avec `user.token_version` actuel. Un jeton émis avant une révocation de jetons (via `/auth/revoke-user` ou suppression membre) est immédiatement invalidé, empêchant un défi MFA déjà ouvert de survivre à une révocation.
