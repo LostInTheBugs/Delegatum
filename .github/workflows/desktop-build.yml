@@ -50,9 +50,10 @@ jobs:
           for ($i = 0; $i -lt 60; $i++) {
             Start-Sleep -Seconds 2
             if ($p.HasExited) { Write-Host "launcher exited early, code $($p.ExitCode)"; break }
-            if (Test-Path dist\Delegatum\url.txt) {
-              $line = (Get-Content dist\Delegatum\url.txt -First 1).Trim()
-              if ($line) { break }
+            if (Test-Path dist\Delegatum\url.txt -PathType Leaf) {
+              $content = Get-Content dist\Delegatum\url.txt -Raw -ErrorAction SilentlyContinue
+              $line = $content.Trim()
+              if ($line -and $line.StartsWith('http://127.0.0.1:')) { break }
             }
           }
           if (Test-Path dist\Delegatum\error.log) { Write-Host '--- error.log ---'; Get-Content dist\Delegatum\error.log }
@@ -164,7 +165,7 @@ jobs:
           PID=$!
           for i in $(seq 1 60); do
             sleep 2
-            [ -s dist/url.txt ] && break
+            if [ -s dist/url.txt ]; then break; fi
           done
           if [ -f dist/error.log ]; then echo '--- error.log ---'; cat dist/error.log; fi
           LINE="$(head -n 1 dist/url.txt 2>/dev/null || true)"
