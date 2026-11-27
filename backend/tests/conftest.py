@@ -22,6 +22,7 @@ os.environ["SD_EMAIL_DIR"] = f"{tempfile.gettempdir()}/sd_emails_test"
 os.environ["SD_SECRET_KEY"] = "test-secret-key-0123456789abcdef0123456789abcdef"
 os.environ["SD_INSTANCE_ADMIN_EMAILS"] = ""
 os.environ["SD_DATA_DIR"] = tempfile.mkdtemp(prefix="sd_data_test_")
+os.environ["SD_TEST_MODE"] = "1"
 os.environ["SD_UPDATE_LOOP"] = "0"
 os.makedirs(os.environ["SD_EMAIL_DIR"], exist_ok=True)
 

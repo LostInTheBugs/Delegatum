@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from app.core.security_middleware import reject_direct_access
 
 from app.core.config import assert_secret_key_is_set, assert_instance_profile_valid
 from app.core.database import init_db
@@ -20,6 +21,9 @@ app = FastAPI(
     description="Outil de gestion pour les délégations du personnel au Luxembourg",
     version=VERSION,
 )
+
+# Security middleware : refuse les accès directs au backend (bypass nginx)
+app.middleware("http")(reject_direct_access)
 
 # CORS — allow the frontend dev server (and any explicit override).
 # En production le front est servi par le MÊME nginx que l'API (même
