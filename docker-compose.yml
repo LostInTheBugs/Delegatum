@@ -30,15 +30,22 @@ services:
       # du réseau privé (sd-net) et ne pas joindre le conteneur (timeout 30s,
       # 504). Vue sur le nouveau serveur lors de la migration depuis l'ancien.
       - "traefik.docker.network=traefik-public"
+      # Middleware : supprime CF-Connecting-IP fourni par le client.
+      # Seul Cloudflare l'ajoute légitimement ; sans ce middleware, un
+      # accès direct à l'origin (bypass Cloudflare) permettrait de falsifier
+      # CF-Connecting-IP et de contourner le middleware reject_direct_access.
+      # Traefik ajoute automatiquement l'IP du client à X-Forwarded-For.
+      - "traefik.http.middlewares.sd-strip-cf.headers.customrequestheaders.CF-Connecting-IP=\"\""
       # HTTP router (redirects to HTTPS)
       - "traefik.http.routers.sd-web.rule=Host(`delegatum.cloudfr.net`) || Host(`staffdpapp.cloudfr.net`)"
-      - "traefik.http.routers.sd-web.middlewares=sd-redirect"
+      - "traefik.http.routers.sd-web.middlewares=sd-strip-cf,sd-redirect"
       - "traefik.http.middlewares.sd-redirect.redirectscheme.scheme=https"
       - "traefik.http.middlewares.sd-redirect.redirectscheme.permanent=true"
       # HTTPS router
       - "traefik.http.routers.sd-web-secure.rule=Host(`delegatum.cloudfr.net`) || Host(`staffdpapp.cloudfr.net`)"
       - "traefik.http.routers.sd-web-secure.tls=true"
       - "traefik.http.routers.sd-web-secure.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.sd-web-secure.middlewares=sd-strip-cf"
       - "traefik.http.routers.sd-web-secure.service=sd-web"
       # Service
       - "traefik.http.services.sd-web.loadbalancer.server.port=80"
