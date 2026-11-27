@@ -19,9 +19,9 @@ _db_fd, _db_path = tempfile.mkstemp(suffix=".db", prefix="sd_test_")
 os.environ["SD_DATABASE_URL"] = f"sqlite:///{_db_path}"
 os.environ["SD_EMAIL_DIR"] = f"{tempfile.gettempdir()}/sd_emails_test"
 # Clé de signature JWT de test (garde assert_secret_key_is_set : ≥32 car., ≠ valeurs d'exemple)
-os.environ.setdefault("SD_SECRET_KEY", "test-secret-key-0123456789abcdef0123456789abcdef")
-os.environ.setdefault("SD_INSTANCE_ADMIN_EMAILS", "")
-os.environ.setdefault("SD_DATA_DIR", tempfile.mkdtemp(prefix="sd_data_test_"))
+os.environ["SD_SECRET_KEY"] = "test-secret-key-0123456789abcdef0123456789abcdef"
+os.environ["SD_INSTANCE_ADMIN_EMAILS"] = ""
+os.environ["SD_DATA_DIR"] = tempfile.mkdtemp(prefix="sd_data_test_")
 os.environ["SD_UPDATE_LOOP"] = "0"
 os.makedirs(os.environ["SD_EMAIL_DIR"], exist_ok=True)
 
@@ -37,6 +37,11 @@ def _cleanup():
         os.unlink(_db_path)
     except OSError:
         pass
+    # Nettoyer le DATA_DIR temporaire
+    data_dir = os.environ.get("SD_DATA_DIR", "")
+    if data_dir and os.path.isdir(data_dir):
+        import shutil
+        shutil.rmtree(data_dir, ignore_errors=True)
 
 
 atexit.register(_cleanup)
