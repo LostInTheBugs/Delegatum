@@ -8,7 +8,7 @@ Management tool for **staff delegations** in Luxembourg, inspired by the Labour 
 
 🌍 Français : [README.fr.md](README.fr.md) · Deutsch : [README.de.md](README.de.md) · Lëtzebuergesch : [README.lb.md](README.lb.md)
 
-Current version: **2026.11.011** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
+Current version: **2026.11.012** — [See GitHub releases](https://github.com/LostInTheBugs/Delegatum/releases)
 
 ## Features
 
@@ -137,7 +137,7 @@ In a delegate-only profile (`sst`, `egalite`, or `sst,egalite`), the following m
 - 🔒 **Passwords**: bcrypt directly (no unmaintained passlib), passwords over 72 bytes rejected explicitly (no silent bcrypt truncation), Argon2id for invitation codes.
 - 🔑 **JWT signing key guard**: startup is refused when `SD_SECRET_KEY` is missing, shorter than 32 characters, or equal to a known example value — a deployment forgetting its `.env` cannot silently run with forgeable tokens.
 - 🔒 **AES encryption key validation** (2026.11.011): `_aes_key()` no longer falls back to a null key; raises `RuntimeError` if `SD_SECRET_KEY` is absent. Accepts hex ≥ 64 chars (decodes first 64 bytes); short hex or non-hex falls through to SHA-256 hash guaranteeing exactly 32 bytes. Prevents silent encryption with zeroed keys.
-- 🌐 **Chaîne proxy IP & Cloudflare** (2026.11.011) : nginx extrait `CF-Connecting-IP` (Cloudflare), le copie dans `X-Real-Client-IP`, puis supprime `CF-Connecting-IP` pour éviter le spoofing. `XFF` est en append (`$http_x_forwarded_for, $remote_addr`). Le backend `client_ip()` lit d'abord `X-Real-Client-IP`, en fallback `XFF[0]` (première valeur).
+- 🌐 **Chaîne proxy IP & Cloudflare** (2026.11.012) : Traefik supprime `CF-Connecting-IP` fourni par le client (middleware `sd-strip-cf`). Seul Cloudflare l'ajoute légitimement, empêchant le spoofing via un accès direct à l'origin. nginx extrait `CF-Connecting-IP` (de Cloudflare), le copie dans `X-Real-Client-IP`, puis supprime `CF-Connecting-IP` pour éviter le spoofing. `XFF` est en append (`$http_x_forwarded_for, $remote_addr`). Le backend `client_ip()` lit d'abord `X-Real-Client-IP`, en fallback `XFF[0]` (première valeur).
 
 ## Access rights (RBAC)
 
