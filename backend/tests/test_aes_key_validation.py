@@ -13,10 +13,13 @@ from app.core.crypto import _aes_key
 
 @pytest.fixture(autouse=True)
 def clean_env():
-    """Supprime SD_SECRET_KEY avant et après chaque test."""
-    os.environ.pop("SD_SECRET_KEY", None)
+    """Sauvegarde SD_SECRET_KEY avant chaque test, restaure après."""
+    saved = os.environ.pop("SD_SECRET_KEY", None)
     yield
-    os.environ.pop("SD_SECRET_KEY", None)
+    if saved is not None:
+        os.environ["SD_SECRET_KEY"] = saved
+    else:
+        os.environ.pop("SD_SECRET_KEY", None)
 
 
 class TestNullKeyFallback:
